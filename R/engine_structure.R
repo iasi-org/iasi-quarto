@@ -35,17 +35,12 @@
         basename(chapter$documents) != "index.qmd"
       ]
 
-      list(
-        part = index,
-        chapters = documents
-      )
+      list(part = index, chapters = documents)
     }
   )
 
   list(
-    book = list(
-      chapters = chapters
-    )
+    book = list(chapters = chapters)
   )
 }
 
