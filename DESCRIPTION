@@ -1,0 +1,26 @@
+Package: iasi.quarto
+Type: Package
+Title: Utilities for Building and Rendering Quarto Projects
+Version: 0.1.0
+Authors@R: person(
+    given = "Javier",
+    family = "G. Grandez",
+    email = "jggrandez@gmail.com",
+    role = c("aut", "cre")
+    )
+Description: Provides utilities for discovering, organizing,
+    validating, and rendering Quarto projects. The package automates
+    common project tasks such as generating book structures,
+    orchestrating rendering workflows, and managing reusable project
+    conventions.
+License: MIT + file LICENSE
+Encoding: UTF-8
+Language: en
+LazyData: true
+Depends:
+    R (>= 4.2.0)
+Imports:
+    yaml
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 8.0.0
+
