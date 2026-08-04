@@ -27,16 +27,12 @@ render = function(profile = "all") {
 
   generate_book_structure()
 
-  switch(
-    profile,
-
-    html = .render_html(),
-
-    pdf = .render_pdf(),
-
-    all = {
-      .render_html()
-      .render_pdf()
+  switch(profile
+    ,html = .render_html()
+    ,pdf = .render_pdf()
+    ,all = {
+       .render_html()
+       .render_pdf()
     }
   )
 
