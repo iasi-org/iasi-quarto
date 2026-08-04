@@ -1,38 +1,26 @@
-#' Render a Quarto project.
+#' Render an IASI Quarto project
 #'
-#' Generates the dynamic book structure and renders the selected output
-#' profile.
+#' Builds the project and renders the selected Quarto profile.
 #'
-#' @param profile Output profile to render. Supported values are
-#'   `"all"` (default), `"html"` and `"pdf"`.
+#' @param profile Output profile. Supported values are `"all"`, `"html"` and
+#'   `"pdf"`.
+#' @param path Directory containing `_quarto.yml`.
 #'
-#' @return
-#' Invisibly returns `TRUE` when the rendering process completes
-#' successfully.
-#'
-#' @examples
-#' \dontrun{
-#' render()
-#' render("html")
-#' render("pdf")
-#' }
-#'
+#' @return Invisibly returns `TRUE`.
 #' @export
-render = function(profile = "all") {
+render <- function(profile = "all", path = ".") {
+  profile <- match.arg(profile, choices = c("all", "html", "pdf"))
 
-  profile = match.arg(
+  project <- discover(path)
+  build(project)
+
+  switch(
     profile,
-    choices = c("all", "html", "pdf")
-  )
-
-  generate_book_structure()
-
-  switch(profile
-    ,html = .render_html()
-    ,pdf = .render_pdf()
-    ,all = {
-       .render_html()
-       .render_pdf()
+    html = .render_profile(project$path, "html"),
+    pdf = .render_profile(project$path, "pdf"),
+    all = {
+      .render_profile(project$path, "html")
+      .render_profile(project$path, "pdf")
     }
   )
 

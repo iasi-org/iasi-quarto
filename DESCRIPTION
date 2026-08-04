@@ -1,18 +1,17 @@
 Package: iasi.quarto
 Type: Package
-Title: Utilities for Building and Rendering Quarto Projects
-Version: 0.1.0
+Title: Build System for Quarto Publications
+Version: 0.2.0
 Authors@R: person(
     given = "Javier",
     family = "G. Grandez",
     email = "jggrandez@gmail.com",
     role = c("aut", "cre")
     )
-Description: Provides utilities for discovering, organizing,
-    validating, and rendering Quarto projects. The package automates
-    common project tasks such as generating book structures,
-    orchestrating rendering workflows, and managing reusable project
-    conventions.
+Description: Discovers, validates, builds, and renders Quarto publications
+    from their project structure. The package recognizes structured books,
+    regular books, and papers, generates the Quarto artifacts required by
+    each model, and keeps construction separate from rendering.
 License: MIT + file LICENSE
 Encoding: UTF-8
 Language: en
