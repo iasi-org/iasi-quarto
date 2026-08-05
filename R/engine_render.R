@@ -1,26 +1,10 @@
-.render_html = function() {
+.render_profile <- function(path, profile) {
+  old <- setwd(path)
+  on.exit(setwd(old), add = TRUE)
 
-  .render_profile("html")
-
-}
-
-
-.render_pdf = function() {
-
-  .render_profile("pdf")
-
-}
-
-
-.render_profile = function(profile) {
-
-  status = system2(
+  status <- system2(
     command = "quarto",
-    args = c(
-      "render",
-      "--profile",
-      profile
-    )
+    args = c("render", "--profile", profile)
   )
 
   if (!identical(status, 0L)) {

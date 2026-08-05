@@ -1,40 +1,48 @@
-#' Render a Quarto project.
+#' Render an IASI Quarto publication
 #'
-#' Generates the dynamic book structure and renders the selected output
-#' profile.
+#' Accepts an existing publication or builds one from a project path, then
+#' invokes Quarto for the selected profile.
 #'
-#' @param profile Output profile to render. Supported values are
-#'   `"all"` (default), `"html"` and `"pdf"`.
+#' For backward compatibility, `render("html")` and `render("pdf")` are
+#' interpreted as profile selections.
 #'
-#' @return
-#' Invisibly returns `TRUE` when the rendering process completes
-#' successfully.
+#' @param publication An optional `iasi_quarto_publication`.
+#' @param profile One of `"all"`, `"html"` or `"pdf"`.
+#' @param path Directory containing `_quarto.yml` when `publication` is NULL.
 #'
-#' @examples
-#' \dontrun{
-#' render()
-#' render("html")
-#' render("pdf")
-#' }
-#'
+#' @return Invisibly returns the rendered `iasi_quarto_publication`.
 #' @export
-render = function(profile = "all") {
+render <- function(publication = NULL, profile = "all", path = ".") {
+  if (
+    is.character(publication) &&
+      length(publication) == 1L &&
+      publication %in% c("all", "html", "pdf") &&
+      identical(profile, "all")
+  ) {
+    profile <- publication
+    publication <- NULL
+  }
 
-  profile = match.arg(
-    profile,
-    choices = c("all", "html", "pdf")
-  )
+  profile <- match.arg(profile, c("all", "html", "pdf"))
 
-  generate_book_structure()
+  if (is.null(publication)) {
+    publication <- build(path = path)
+  }
 
-  switch(profile
-    ,html = .render_html()
-    ,pdf = .render_pdf()
-    ,all = {
-       .render_html()
-       .render_pdf()
-    }
-  )
+  .assert_publication(publication)
 
-  invisible(TRUE)
+  profiles <- if (identical(profile, "all")) {
+    c("html", "pdf")
+  } else {
+    profile
+  }
+
+  for (selected_profile in profiles) {
+    .render_profile(publication$path, selected_profile)
+  }
+
+  publication$rendered <- TRUE
+  publication$profiles <- profiles
+
+  invisible(publication)
 }
