@@ -1,0 +1,20 @@
+Listado de rutas de carpetas para el volumen Windows
+El número de serie del volumen es 000002C7 721C:BD90
+P:\IASI\IASI_QUARTO\R
+    build.R
+    discover.R
+    engine-chapter-index.R
+    engine_build.R
+    engine_build_paper.R
+    engine_build_regular.R
+    engine_build_structured.R
+    engine_discover.R
+    engine_render.R
+    engine_validate.R
+    engine_wirtter.R
+    render.R
+    structure.R
+    validate.R
+    
+No existe ninguna subcarpeta 
+

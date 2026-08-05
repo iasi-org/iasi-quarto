@@ -1,5 +1,4 @@
 .validate_project <- function(project) {
-
   if (!inherits(project, "iasi_quarto_project")) {
     stop(
       "'project' must be an object returned by discover().",
@@ -10,20 +9,9 @@
   errors <- character()
   warnings <- character()
 
-  #
-  # Global project type
-  #
-
   if (identical(project$type, "incoherent")) {
-    errors <- c(
-      errors,
-      "The publication structure is incoherent."
-    )
+    errors <- c(errors, "The publication structure is incoherent.")
   }
-
-  #
-  # Folder-level conflicts
-  #
 
   conflicting_folders <- Filter(
     function(folder) {
@@ -35,14 +23,7 @@
   )
 
   if (length(conflicting_folders) > 0L) {
-
-    folder_names <- vapply(
-      conflicting_folders,
-      `[[`,
-      character(1),
-      "name"
-    )
-
+    folder_names <- vapply(conflicting_folders, `[[`, character(1), "name")
     errors <- c(
       errors,
       sprintf(
@@ -52,26 +33,13 @@
     )
   }
 
-  #
-  # Unclassified folders
-  #
-
   unclassified_folders <- Filter(
-    function(folder) {
-      identical(folder$strategy, "unclassified")
-    },
+    function(folder) identical(folder$strategy, "unclassified"),
     project$folders
   )
 
   if (length(unclassified_folders) > 0L) {
-
-    folder_names <- vapply(
-      unclassified_folders,
-      `[[`,
-      character(1),
-      "name"
-    )
-
+    folder_names <- vapply(unclassified_folders, `[[`, character(1), "name")
     errors <- c(
       errors,
       sprintf(
@@ -81,26 +49,13 @@
     )
   }
 
-  #
-  # Explicit as-is folders
-  #
-
   as_is_folders <- Filter(
-    function(folder) {
-      identical(folder$strategy, "as-is")
-    },
+    function(folder) identical(folder$strategy, "as-is"),
     project$folders
   )
 
   if (length(as_is_folders) > 0L) {
-
-    folder_names <- vapply(
-      as_is_folders,
-      `[[`,
-      character(1),
-      "name"
-    )
-
+    folder_names <- vapply(as_is_folders, `[[`, character(1), "name")
     warnings <- c(
       warnings,
       sprintf(
@@ -109,10 +64,6 @@
       )
     )
   }
-
-  #
-  # Enrich the existing project object
-  #
 
   project$valid <- length(errors) == 0L
   project$errors <- unique(errors)

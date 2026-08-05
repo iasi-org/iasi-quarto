@@ -7,8 +7,7 @@
 discover(path = ".")
 }
 \arguments{
-\item{path}{Directory containing \verb{_quarto.yml}. Defaults to the current
-working directory.}
+\item{path}{Directory containing \verb{_quarto.yml}.}
 }
 \value{
 An object of class \code{iasi_quarto_project}.

@@ -2,20 +2,20 @@
 % Please edit documentation in R/build.R
 \name{build}
 \alias{build}
-\title{Build an IASI Quarto project}
+\title{Build an IASI Quarto publication}
 \usage{
 build(project = NULL, path = ".")
 }
 \arguments{
-\item{project}{An optional object returned by \code{\link[=discover]{discover()}}.}
+\item{project}{An optional \code{iasi_quarto_project}.}
 
-\item{path}{Directory containing \verb{_quarto.yml}, used only when \code{project} is
-\code{NULL}.}
+\item{path}{Directory containing \verb{_quarto.yml}, used when \code{project} is \code{NULL}.}
 }
 \value{
-Invisibly returns the discovered project.
+Invisibly returns an \code{iasi_quarto_publication}.
 }
 \description{
-Discovers and validates the current project, then generates the Quarto
-artifacts required by its publication model.
+Discovers and validates a project when necessary, generates the artifacts
+required by the publication, and returns an independent publication model.
+It does not invoke Quarto.
 }

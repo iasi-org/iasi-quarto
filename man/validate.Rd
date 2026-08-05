@@ -7,17 +7,15 @@
 validate(project = NULL, path = ".")
 }
 \arguments{
-\item{project}{An object returned by \code{\link[=discover]{discover()}}. If \code{NULL}, the project in
-\code{path} is discovered.}
+\item{project}{An object returned by \code{\link[=discover]{discover()}}.}
 
-\item{path}{Directory containing \verb{_quarto.yml}. Used only when \code{project} is
-\code{NULL}.}
+\item{path}{Directory containing \verb{_quarto.yml}, used when \code{project} is NULL.}
 }
 \value{
-Invisibly returns an object of class \code{iasi_quarto_validation}.
+Invisibly returns the same \code{iasi_quarto_project} object, enriched
+with \code{valid}, \code{errors} and \code{warnings}.
 }
 \description{
-Applies the structural validation rules to a project previously discovered
-with \code{\link[=discover]{discover()}}. If no project is supplied, the current Quarto project is
-discovered automatically.
+Enriches a project discovered by \code{\link[=discover]{discover()}} with validation status,
+errors and warnings.
 }

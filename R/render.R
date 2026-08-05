@@ -1,28 +1,62 @@
-#' Render an IASI Quarto project
+#' Render an IASI Quarto publication
 #'
-#' Builds the project and renders the selected Quarto profile.
+#' Accepts an existing publication or builds one from a project path, then
+#' invokes Quarto for the selected profile.
 #'
-#' @param profile Output profile. Supported values are `"all"`, `"html"` and
-#'   `"pdf"`.
-#' @param path Directory containing `_quarto.yml`.
+#' For backward compatibility, `render("html")` and `render("pdf")` are
+#' interpreted as profile selections.
 #'
-#' @return Invisibly returns `TRUE`.
+#' @param publication An optional `iasi_quarto_publication`.
+#' @param profile One of `"all"`, `"html"` or `"pdf"`.
+#' @param path Directory containing `_quarto.yml` when `publication` is `NULL`.
+#'
+#' @return Invisibly returns the rendered `iasi_quarto_publication`.
 #' @export
-render <- function(profile = "all", path = ".") {
-  profile <- match.arg(profile, choices = c("all", "html", "pdf"))
+render <- function(publication = NULL,
+                   profile = "all",
+                   path = ".") {
 
-  project <- discover(path)
-  build(project)
+  if (
+    is.character(publication) &&
+    length(publication) == 1L &&
+    publication %in% c("all", "html", "pdf") &&
+    identical(profile, "all")
+  ) {
+    profile <- publication
+    publication <- NULL
+  }
 
-  switch(
+  profile <- match.arg(
     profile,
-    html = .render_profile(project$path, "html"),
-    pdf = .render_profile(project$path, "pdf"),
-    all = {
-      .render_profile(project$path, "html")
-      .render_profile(project$path, "pdf")
-    }
+    c("all", "html", "pdf")
   )
 
-  invisible(TRUE)
+  if (is.null(publication)) {
+    publication <- build(path = path)
+  }
+
+  if (!inherits(publication, "iasi_quarto_publication")) {
+    stop(
+      "'publication' must be an object returned by build().",
+      call. = FALSE
+    )
+  }
+
+  profiles <- if (identical(profile, "all")) {
+    c("html", "pdf")
+  } else {
+    profile
+  }
+
+  for (selected_profile in profiles) {
+    .render_profile(
+      publication$path,
+      selected_profile
+    )
+  }
+
+  publication$rendered <- TRUE
+  publication$profiles <- profiles
+
+  invisible(publication)
 }

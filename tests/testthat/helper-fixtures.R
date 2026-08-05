@@ -11,3 +11,32 @@ folder_strategy <- function(project, name) {
 
   project$folders[[which(matches)]]$strategy
 }
+
+copy_fixture_project <- function(name) {
+
+  source <- fixture_path(name)
+
+  temp_root <- withr::local_tempdir(
+    .local_envir = parent.frame()
+  )
+
+  copied <- file.copy(
+    source,
+    temp_root,
+    recursive = TRUE,
+    copy.date = TRUE
+  )
+
+  testthat::expect_true(copied)
+
+  project_root <- file.path(
+    temp_root,
+    basename(source)
+  )
+
+  testthat::expect_true(
+    dir.exists(project_root)
+  )
+
+  project_root
+}
