@@ -1,4 +1,4 @@
-.build_structured <- function(project) {
+.prepare_structured <- function(project) {
   .assert_valid_project(project)
 
   chapters <- .structured_chapters(project)

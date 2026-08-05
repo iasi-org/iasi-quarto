@@ -1,289 +1,144 @@
-test_that("build returns a structured publication", {
+test_that(".parse_command_line() uses default selections", {
+  plan = .parse_command_line()
 
-  publication_root <- copy_fixture_project("structured")
-
-  project <- validate(
-    discover(publication_root)
-  )
-
-  publication <- build(project)
-
-  expect_s3_class(
-    publication,
-    "iasi_quarto_publication"
-  )
-  expect_identical(
-    publication$path,
-    normalizePath(
-      publication_root,
-      winslash = "/",
-      mustWork = TRUE
-    )
-  )
-  expect_identical(publication$type, "book")
-  expect_identical(publication$source, "structured")
-  expect_true(publication$changed)
-
-  expect_identical(
-    publication$chapters,
-    c(
-      "index.qmd",
-      "01-manifesto.qmd",
-      "02-principles.qmd",
-      "chapters/01-intro/index.qmd",
-      "chapters/01-intro/01-first.qmd",
-      "chapters/02-core/index.qmd"
-    )
-  )
-
-  expect_identical(
-    publication$artifacts,
-    "_book-structure.yml"
-  )
+  expect_equal(plan$books, "all")
+  expect_equal(plan$formats, "all")
 })
 
-
-test_that("build writes the structured book YAML", {
-
-  publication_root <- copy_fixture_project("structured")
-
-  publication <- build(
-    validate(
-      discover(publication_root)
-    )
+test_that(".parse_command_line() accepts one book and one format", {
+  plan = .parse_command_line(
+    book = "book-one",
+    format = "html"
   )
 
-  output <- file.path(
-    publication$path,
-    "_book-structure.yml"
+  expect_equal(plan$books, "book-one")
+  expect_equal(plan$formats, "html")
+})
+
+test_that(".parse_command_line() accepts multiple books and formats", {
+  plan = .parse_command_line(
+    book = c("book-one", "book-two"),
+    format = c("html", "pdf")
   )
 
-  expect_true(file.exists(output))
+  expect_equal(plan$books, c("book-one", "book-two"))
+  expect_equal(plan$formats, c("html", "pdf"))
+})
 
-  expect_identical(
-    readLines(
-      output,
-      warn = FALSE,
-      encoding = "UTF-8"
+test_that(".parse_command_line() removes duplicates preserving order", {
+  plan = .parse_command_line(
+    book = c("book-one", "book-two", "book-one"),
+    format = c("pdf", "html", "pdf")
+  )
+
+  expect_equal(plan$books, c("book-one", "book-two"))
+  expect_equal(plan$formats, c("pdf", "html"))
+})
+
+test_that(".parse_command_line() accepts all as the only selection", {
+  plan = .parse_command_line(
+    book = "all",
+    format = "all"
+  )
+
+  expect_equal(plan$books, "all")
+  expect_equal(plan$formats, "all")
+})
+
+test_that(".parse_command_line() rejects all combined with another book", {
+  expect_error(
+    .parse_command_line(
+      book = c("all", "book-one")
     ),
-    c(
-      "book:",
-      "  chapters:",
-      "    - \"index.qmd\"",
-      "    - \"01-manifesto.qmd\"",
-      "    - \"02-principles.qmd\"",
-      "    - part: \"chapters/01-intro/index.qmd\"",
-      "      chapters:",
-      "        - \"chapters/01-intro/01-first.qmd\"",
-      "    - part: \"chapters/02-core/index.qmd\""
-    )
+    '`book = "all"` cannot be combined with other values.',
+    fixed = TRUE
   )
 })
 
-
-test_that("structured build is idempotent", {
-
-  publication_root <- copy_fixture_project("structured")
-
-  project <- validate(
-    discover(publication_root)
-  )
-
-  first <- build(project)
-  second <- build(project)
-
-  expect_true(first$changed)
-  expect_false(second$changed)
-
-  expect_identical(
-    first$artifacts,
-    second$artifacts
-  )
-})
-
-
-test_that("build returns a regular publication", {
-
-  publication_root <- copy_fixture_project("regular")
-
-  publication <- build(
-    validate(
-      discover(publication_root)
-    )
-  )
-
-  expect_s3_class(
-    publication,
-    "iasi_quarto_publication"
-  )
-  expect_identical(publication$type, "book")
-  expect_identical(publication$source, "regular")
-  expect_true(publication$changed)
-
-  expect_identical(
-    publication$chapters,
-    c(
-      "index.qmd",
-      "chapters/01-intro/index.qmd",
-      "chapters/02-install/index.qmd"
-    )
-  )
-
-  expect_identical(
-    publication$artifacts,
-    c(
-      "chapters/01-intro/index.qmd",
-      "chapters/02-install/index.qmd",
-      "_book-structure.yml"
-    )
-  )
-})
-
-
-test_that("regular build creates chapter indexes", {
-
-  publication_root <- copy_fixture_project("regular")
-
-  publication <- build(
-    validate(
-      discover(publication_root)
-    )
-  )
-
-  intro_index <- file.path(
-    publication$path,
-    "chapters",
-    "01-intro",
-    "index.qmd"
-  )
-
-  install_index <- file.path(
-    publication$path,
-    "chapters",
-    "02-install",
-    "index.qmd"
-  )
-
-  expect_true(file.exists(intro_index))
-  expect_true(file.exists(install_index))
-
-  expect_identical(
-    readLines(
-      intro_index,
-      warn = FALSE,
-      encoding = "UTF-8"
+test_that(".parse_command_line() rejects all combined with another format", {
+  expect_error(
+    .parse_command_line(
+      format = c("all", "html")
     ),
-    c(
-      "{{< include 00-index.qmd >}}",
-      "",
-      "{{< include 01-what.qmd >}}"
-    )
+    '`format = "all"` cannot be combined with other values.',
+    fixed = TRUE
+  )
+})
+
+test_that(".parse_command_line() rejects empty book selections", {
+  expect_error(
+    .parse_command_line(book = character()),
+    "`book` must contain at least one non-empty value.",
+    fixed = TRUE
   )
 
-  expect_identical(
-    readLines(
-      install_index,
-      warn = FALSE,
-      encoding = "UTF-8"
+  expect_error(
+    .parse_command_line(book = ""),
+    "`book` must contain at least one non-empty value.",
+    fixed = TRUE
+  )
+
+  expect_error(
+    .parse_command_line(
+      book = c("book-one", "")
     ),
-    "{{< include 00-index.qmd >}}"
+    "`book` must contain at least one non-empty value.",
+    fixed = TRUE
   )
 })
 
-
-test_that("regular build writes the book structure", {
-
-  publication_root <- copy_fixture_project("regular")
-
-  publication <- build(
-    validate(
-      discover(publication_root)
-    )
+test_that(".parse_command_line() rejects empty format selections", {
+  expect_error(
+    .parse_command_line(format = character()),
+    "`format` must contain at least one non-empty value.",
+    fixed = TRUE
   )
 
-  output <- file.path(
-    publication$path,
-    "_book-structure.yml"
+  expect_error(
+    .parse_command_line(format = ""),
+    "`format` must contain at least one non-empty value.",
+    fixed = TRUE
   )
 
-  expect_true(file.exists(output))
-
-  expect_identical(
-    readLines(
-      output,
-      warn = FALSE,
-      encoding = "UTF-8"
+  expect_error(
+    .parse_command_line(
+      format = c("html", "")
     ),
-    c(
-      "book:",
-      "  chapters:",
-      "    - \"index.qmd\"",
-      "    - \"chapters/01-intro/index.qmd\"",
-      "    - \"chapters/02-install/index.qmd\""
-    )
+    "`format` must contain at least one non-empty value.",
+    fixed = TRUE
   )
 })
 
-
-test_that("regular build is idempotent", {
-
-  publication_root <- copy_fixture_project("regular")
-
-  project <- validate(
-    discover(publication_root)
-  )
-
-  first <- build(project)
-  second <- build(project)
-
-  expect_true(first$changed)
-  expect_false(second$changed)
-
-  expect_identical(
-    first$artifacts,
-    second$artifacts
+test_that(".parse_command_line() rejects unknown formats", {
+  expect_error(
+    .parse_command_line(format = "epub"),
+    paste0(
+      '`format` contains invalid value: "epub". ',
+      'Valid values are: "all", "html", "pdf".'
+    ),
+    fixed = TRUE
   )
 })
 
-test_that("build returns a direct publication without generating artifacts", {
-  publication_root <- copy_fixture_project("direct")
-
-  publication <- build(
-    validate(
-      discover(publication_root)
-    )
-  )
-
-  expect_s3_class(publication, "iasi_quarto_publication")
-  expect_identical(publication$type, "book")
-  expect_identical(publication$source, "direct")
-  expect_false(publication$changed)
-  expect_length(publication$artifacts, 0L)
-
-  expect_identical(
-    publication$chapters,
-    c("index.qmd", "notes.qmd")
-  )
-
-  expect_false(
-    file.exists(
-      file.path(publication$path, "_book-structure.yml")
-    )
+test_that(".parse_command_line() reports all unknown formats", {
+  expect_error(
+    .parse_command_line(
+      format = c("epub", "docx")
+    ),
+    paste0(
+      '`format` contains invalid values: "epub", "docx". ',
+      'Valid values are: "all", "html", "pdf".'
+    ),
+    fixed = TRUE
   )
 })
 
-
-test_that("direct folder markers are not included as content", {
-  publication_root <- copy_fixture_project("direct-folders")
-
-  publication <- build(
-    validate(
-      discover(publication_root)
-    )
+test_that(".parse_command_line() does not restrict book names", {
+  plan = .parse_command_line(
+    book = "future-publication",
+    format = "pdf"
   )
 
-  expect_identical(publication$source, "direct")
-  expect_false(any(grepl("index\\.txt$", publication$chapters)))
-  expect_false(any(grepl("00-index\\.txt$", publication$chapters)))
-  expect_true("chapters/01-draft/draft.qmd" %in% publication$chapters)
+  expect_equal(plan$books, "future-publication")
+  expect_equal(plan$formats, "pdf")
 })

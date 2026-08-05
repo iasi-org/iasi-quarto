@@ -1,4 +1,4 @@
-.build_regular <- function(project) {
+.prepare_regular <- function(project) {
   .assert_valid_project(project)
 
   chapters <- c(
