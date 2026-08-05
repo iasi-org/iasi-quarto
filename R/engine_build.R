@@ -189,3 +189,17 @@
 
   render(profile = format)
 }
+
+.summarise_process = function(plan, results, started_at) {
+  elapsed = difftime(Sys.time(), started_at, units = "secs" )
+
+  message("")
+  message("Build completed")
+  message("---------------")
+  message("Books  : ", length(results))
+  message("Renders: ", sum(lengths(results)))
+  message("Formats: ", paste(plan$formats, collapse = ", "))
+  message("Elapsed: ", round(as.numeric(elapsed), 2), " seconds" )
+
+  invisible(results)
+}

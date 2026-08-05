@@ -17,10 +17,16 @@
 #' @export
 build = function(book = NULL, format = NULL) {
 
-    plan = .parse_command_line(book = book, format = format)
-    plan = .resolve_current_project(plan)
-    plan = .resolve_books(plan)
+   started_at = Sys.time()   
+   
+   plan = .parse_command_line(book = book, format = format)
+   plan = .resolve_current_project(plan)
+   plan = .resolve_books(plan)
     
    plan$results = lapply(plan$books, .process_book,formats = plan$formats, change_directory = !plan$current)  
+   
+   .summarise_process(plan = plan, results = results, started_at = started_at)
+
+  invisible(results)   
 
 }
