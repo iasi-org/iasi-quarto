@@ -57,7 +57,9 @@
   #
 
   unclassified_folders <- Filter(
-    function(folder) identical(folder$strategy, "unclassified"),
+    function(folder) {
+      identical(folder$strategy, "unclassified")
+    },
     project$folders
   )
 
@@ -84,7 +86,9 @@
   #
 
   as_is_folders <- Filter(
-    function(folder) identical(folder$strategy, "as-is"),
+    function(folder) {
+      identical(folder$strategy, "as-is")
+    },
     project$folders
   )
 
@@ -107,18 +111,12 @@
   }
 
   #
-  # Result
+  # Enrich the existing project object
   #
 
-  validation <- list(
-    valid = length(errors) == 0L,
-    type = project$type,
-    project = project,
-    errors = unique(errors),
-    warnings = unique(warnings)
-  )
+  project$valid <- length(errors) == 0L
+  project$errors <- unique(errors)
+  project$warnings <- unique(warnings)
 
-  class(validation) <- "iasi_quarto_validation"
-
-  validation
+  project
 }

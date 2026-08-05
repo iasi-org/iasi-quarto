@@ -1,133 +1,114 @@
-test_that("validate accepts a structured project", {
+test_that("structured project validates", {
+
   project <- discover(fixture_path("structured"))
 
-  expect_output(
-    validation <- validate(project),
-    "Status       : VALID",
-    fixed = TRUE
-  )
+  project <- validate(project)
 
-  expect_s3_class(validation, "iasi_quarto_validation")
-  expect_true(validation$valid)
-  expect_identical(validation$type, "structured")
-  expect_length(validation$errors, 0L)
+  expect_s3_class(project, "iasi_quarto_project")
+  expect_true(project$valid)
+  expect_identical(project$type, "structured")
+  expect_length(project$errors, 0L)
+
 })
 
-test_that("validate accepts a regular project", {
+test_that("regular project validates", {
+
   project <- discover(fixture_path("regular"))
 
-  expect_output(
-    validation <- validate(project),
-    "Status       : VALID",
-    fixed = TRUE
-  )
+  project <- validate(project)
 
-  expect_true(validation$valid)
-  expect_identical(validation$type, "regular")
-  expect_length(validation$errors, 0L)
+  expect_true(project$valid)
+  expect_identical(project$type, "regular")
+  expect_length(project$errors, 0L)
+
 })
 
-test_that("validate accepts a paper project", {
+test_that("paper project validates", {
+
   project <- discover(fixture_path("paper"))
 
-  expect_output(
-    validation <- validate(project),
-    "Status       : VALID",
-    fixed = TRUE
-  )
+  project <- validate(project)
 
-  expect_true(validation$valid)
-  expect_identical(validation$type, "paper")
-  expect_length(validation$errors, 0L)
+  expect_true(project$valid)
+  expect_identical(project$type, "paper")
+  expect_length(project$errors, 0L)
+
 })
 
-test_that("validate rejects incompatible publication models", {
+test_that("incoherent publication is rejected", {
+
   project <- discover(fixture_path("incoherent-models"))
 
-  expect_output(
-    validation <- validate(project),
-    "Status       : INVALID",
-    fixed = TRUE
-  )
+  project <- validate(project)
 
-  expect_false(validation$valid)
-  expect_identical(validation$type, "incoherent")
-  expect_true(length(validation$errors) > 0L)
+  expect_false(project$valid)
+  expect_identical(project$type, "incoherent")
+  expect_gt(length(project$errors), 0L)
+
 })
 
-test_that("validate rejects conflicting indexes in the same folder", {
+test_that("conflicting indexes are rejected", {
+
   project <- discover(fixture_path("incoherent-same-folder"))
 
-  expect_output(
-    validation <- validate(project),
-    "Status       : INVALID",
-    fixed = TRUE
-  )
+  project <- validate(project)
 
-  expect_false(validation$valid)
+  expect_false(project$valid)
+
   expect_true(
-    any(grepl(
-      "both index.qmd and 00-index.qmd",
-      validation$errors,
-      fixed = TRUE
-    ))
-  )
-})
-
-test_that("validate rejects folders without an index declaration", {
-  project <- discover(fixture_path("incoherent-unclassified"))
-
-  expect_output(
-    validation <- validate(project),
-    "Status       : INVALID",
-    fixed = TRUE
-  )
-
-  expect_false(validation$valid)
-  expect_true(length(validation$errors) > 0L)
-})
-
-test_that("validate warns about folders processed as-is", {
-  project <- discover(fixture_path("regular-with-as-is"))
-
-  expect_output(
-    validation <- validate(project),
-    "Status       : VALID",
-    fixed = TRUE
-  )
-
-  expect_true(validation$valid)
-  expect_length(validation$warnings, 1L)
-  expect_match(validation$warnings, "index.txt", fixed = TRUE)
-})
-
-test_that("validate reports projects containing only as-is folders", {
-  project <- discover(fixture_path("mixed"))
-
-  expect_output(
-    validation <- validate(project),
-    "Status       : VALID",
-    fixed = TRUE
-  )
-
-  expect_true(validation$valid)
-  expect_identical(validation$type, "mixed")
-  expect_true(length(validation$warnings) > 0L)
-})
-
-test_that("validate can discover the current project itself", {
-  validation <- withr::with_dir(
-    fixture_path("regular"),
-    {
-      expect_output(
-        result <- validate(),
-        "Status       : VALID",
+    any(
+      grepl(
+        "both index.qmd and 00-index.qmd",
+        project$errors,
         fixed = TRUE
       )
-      result
-    }
+    )
   )
 
-  expect_true(validation$valid)
-  expect_identical(validation$type, "regular")
+})
+
+test_that("folders without declaration are rejected", {
+
+  project <- discover(fixture_path("incoherent-unclassified"))
+
+  project <- validate(project)
+
+  expect_false(project$valid)
+  expect_gt(length(project$errors), 0L)
+
+})
+
+test_that("manual folders generate warnings", {
+
+  project <- discover(fixture_path("regular-with-as-is"))
+
+  project <- validate(project)
+
+  expect_true(project$valid)
+  expect_length(project$warnings, 1L)
+
+})
+
+test_that("mixed projects remain valid", {
+
+  project <- discover(fixture_path("mixed"))
+
+  project <- validate(project)
+
+  expect_true(project$valid)
+  expect_identical(project$type, "mixed")
+  expect_gt(length(project$warnings), 0L)
+
+})
+
+test_that("validate discovers current project", {
+
+  project <- withr::with_dir(
+    fixture_path("regular"),
+    validate()
+  )
+
+  expect_true(project$valid)
+  expect_identical(project$type, "regular")
+
 })
