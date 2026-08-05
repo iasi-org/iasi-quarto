@@ -2,27 +2,19 @@
 % Please edit documentation in R/render.R
 \name{render}
 \alias{render}
-\title{Render a Quarto project.}
+\title{Render an IASI Quarto project}
 \usage{
-render(profile = "all")
+render(profile = "all", path = ".")
 }
 \arguments{
-\item{profile}{Output profile to render. Supported values are
-\code{"all"} (default), \code{"html"} and \code{"pdf"}.}
+\item{profile}{Output profile. Supported values are \code{"all"}, \code{"html"} and
+\code{"pdf"}.}
+
+\item{path}{Directory containing \verb{_quarto.yml}.}
 }
 \value{
-Invisibly returns \code{TRUE} when the rendering process completes
-successfully.
+Invisibly returns \code{TRUE}.
 }
 \description{
-Generates the dynamic book structure and renders the selected output
-profile.
-}
-\examples{
-\dontrun{
-render()
-render("html")
-render("pdf")
-}
-
+Builds the project and renders the selected Quarto profile.
 }
