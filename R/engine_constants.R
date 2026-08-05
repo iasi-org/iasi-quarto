@@ -1,2 +1,2 @@
-.supported_formats = c("all", "html", "pdf")
+.supported_formats = c("html", "pdf")
 

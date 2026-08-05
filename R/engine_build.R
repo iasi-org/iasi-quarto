@@ -2,7 +2,7 @@
 
 .parse_command_line <- function(book = "all", format = "all") {
     books = .normalise_selection(value = book, argument = "book" )
-    formats = .normalise_selection(value = format, argument = "format",choices = .supported_formats)
+    formats = .normalise_selection(value = format, argument = "format",choices = c("all", .supported_formats))
 
     if (identical(formats, "all")) formats = .supported_formats
 
@@ -175,13 +175,16 @@
   plan
 }
 
-.process_book = function(book, formats,change_directory) {
+.process_book = function(book, formats, change_directory) {
+  book_name = basename(book)   
+  
   if (change_directory) {
       previous_directory = setwd(book)
       on.exit(setwd(previous_directory), add = TRUE)
   }
 
   lapply(formats,.process_format, book=book_name)
+  
 }
 
 .process_format = function(format, book) {

@@ -1,4 +1,4 @@
-test_that("build returns a structured publication", {
+test_that("prepare returns a structured publication", {
 
   publication_root <- copy_fixture_project("structured")
 
@@ -6,7 +6,7 @@ test_that("build returns a structured publication", {
     discover(publication_root)
   )
 
-  publication <- build(project)
+  publication <- prepare(project)
 
   expect_s3_class(
     publication,
@@ -43,11 +43,11 @@ test_that("build returns a structured publication", {
 })
 
 
-test_that("build writes the structured book YAML", {
+test_that("prepare writes the structured book YAML", {
 
   publication_root <- copy_fixture_project("structured")
 
-  publication <- build(
+  publication <- prepare(
     validate(
       discover(publication_root)
     )
@@ -81,7 +81,7 @@ test_that("build writes the structured book YAML", {
 })
 
 
-test_that("structured build is idempotent", {
+test_that("structured prepare is idempotent", {
 
   publication_root <- copy_fixture_project("structured")
 
@@ -89,8 +89,8 @@ test_that("structured build is idempotent", {
     discover(publication_root)
   )
 
-  first <- build(project)
-  second <- build(project)
+  first <- prepare(project)
+  second <- prepare(project)
 
   expect_true(first$changed)
   expect_false(second$changed)
@@ -102,11 +102,11 @@ test_that("structured build is idempotent", {
 })
 
 
-test_that("build returns a regular publication", {
+test_that("prepare returns a regular publication", {
 
   publication_root <- copy_fixture_project("regular")
 
-  publication <- build(
+  publication <- prepare(
     validate(
       discover(publication_root)
     )
@@ -140,11 +140,11 @@ test_that("build returns a regular publication", {
 })
 
 
-test_that("regular build creates chapter indexes", {
+test_that("regular prepare creates chapter indexes", {
 
   publication_root <- copy_fixture_project("regular")
 
-  publication <- build(
+  publication <- prepare(
     validate(
       discover(publication_root)
     )
@@ -191,11 +191,11 @@ test_that("regular build creates chapter indexes", {
 })
 
 
-test_that("regular build writes the book structure", {
+test_that("regular prepare writes the book structure", {
 
   publication_root <- copy_fixture_project("regular")
 
-  publication <- build(
+  publication <- prepare(
     validate(
       discover(publication_root)
     )
@@ -225,7 +225,7 @@ test_that("regular build writes the book structure", {
 })
 
 
-test_that("regular build is idempotent", {
+test_that("regular prepare is idempotent", {
 
   publication_root <- copy_fixture_project("regular")
 
@@ -233,8 +233,8 @@ test_that("regular build is idempotent", {
     discover(publication_root)
   )
 
-  first <- build(project)
-  second <- build(project)
+  first <- prepare(project)
+  second <- prepare(project)
 
   expect_true(first$changed)
   expect_false(second$changed)
@@ -245,10 +245,10 @@ test_that("regular build is idempotent", {
   )
 })
 
-test_that("build returns a direct publication without generating artifacts", {
+test_that("prepare returns a direct publication without generating artifacts", {
   publication_root <- copy_fixture_project("direct")
 
-  publication <- build(
+  publication <- prepare(
     validate(
       discover(publication_root)
     )
@@ -276,7 +276,7 @@ test_that("build returns a direct publication without generating artifacts", {
 test_that("direct folder markers are not included as content", {
   publication_root <- copy_fixture_project("direct-folders")
 
-  publication <- build(
+  publication <- prepare(
     validate(
       discover(publication_root)
     )

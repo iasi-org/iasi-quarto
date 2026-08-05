@@ -2,7 +2,7 @@ test_that(".parse_command_line() uses default selections", {
   plan = .parse_command_line()
 
   expect_equal(plan$books, "all")
-  expect_equal(plan$formats, "all")
+  expect_equal(plan$formats, c("html", "pdf"))  
 })
 
 test_that(".parse_command_line() accepts one book and one format", {
@@ -42,7 +42,7 @@ test_that(".parse_command_line() accepts all as the only selection", {
   )
 
   expect_equal(plan$books, "all")
-  expect_equal(plan$formats, "all")
+  expect_equal(plan$formats,  c("html", "pdf"))  
 })
 
 test_that(".parse_command_line() rejects all combined with another book", {

@@ -24,7 +24,7 @@ prepare <- function(project = NULL, path = ".") {
 
   project <- switch(
     project$type,
-    structured = .pepare_structured(project),
+    structured = .prepare_structured(project),
     regular = .prepare_regular(project),
     direct = .prepare_direct(project),
     incoherent = stop(

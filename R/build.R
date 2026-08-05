@@ -23,7 +23,7 @@ build = function(book = NULL, format = NULL) {
    plan = .resolve_current_project(plan)
    plan = .resolve_books(plan)
     
-   plan$results = lapply(plan$books, .process_book,formats = plan$formats, change_directory = !plan$current)  
+   results = lapply(plan$books, .process_book,formats = plan$formats, change_directory = !plan$current)  
    
    .summarise_process(plan = plan, results = results, started_at = started_at)
 

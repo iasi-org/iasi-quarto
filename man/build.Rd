@@ -2,20 +2,25 @@
 % Please edit documentation in R/build.R
 \name{build}
 \alias{build}
-\title{Build an IASI Quarto publication}
+\title{Build Quarto publications}
 \usage{
-build(project = NULL, path = ".")
+build(book = NULL, format = NULL)
 }
 \arguments{
-\item{project}{An optional \code{iasi_quarto_project}.}
+\item{book}{Book or books to build.}
 
-\item{path}{Directory containing \verb{_quarto.yml}, used when \code{project} is NULL.}
+\item{format}{Output format or formats.}
 }
 \value{
-Invisibly returns an \code{iasi_quarto_publication}.
+A build execution plan.
 }
 \description{
-Discovers and validates a project when necessary, generates any artifacts
-required by its model, and returns an independent publication object.
-It does not invoke Quarto.
+Builds one or more Quarto publications.
+}
+\details{
+\code{build()} automatically adapts to the current working directory.
+
+When executed inside a Quarto project, the current project is built.
+When executed from the root of a multibook workspace, one or more books
+can be selected.
 }
