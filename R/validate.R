@@ -6,8 +6,8 @@
 #' @param project An object returned by [discover()].
 #' @param path Directory containing `_quarto.yml`, used when `project` is NULL.
 #'
-#' @return Invisibly returns the same `iasi_quarto_project` object, enriched
-#'   with `valid`, `errors` and `warnings`.
+#' @return Invisibly returns the same `iasi_quarto_project`, enriched with
+#'   `valid`, `errors` and `warnings`.
 #' @export
 validate <- function(project = NULL, path = ".") {
   if (is.null(project)) {

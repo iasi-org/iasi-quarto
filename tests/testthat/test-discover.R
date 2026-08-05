@@ -13,7 +13,10 @@ test_that("discover identifies a structured project", {
   expect_identical(project$type, "structured")
   expect_identical(project$counts$structured, 2L)
   expect_identical(project$counts$regular, 0L)
-  expect_identical(vapply(project$folders, `[[`, character(1), "name"), c("01-intro", "02-core"))
+  expect_identical(
+    vapply(project$folders, `[[`, character(1), "name"),
+    c("01-intro", "02-core")
+  )
 })
 
 test_that("discover identifies a regular project", {
@@ -33,30 +36,40 @@ test_that("a generated index does not make a regular folder incoherent", {
   expect_identical(folder$strategy, "regular")
 })
 
-test_that("discover identifies a paper when there are no numbered publication folders", {
-  project <- discover(fixture_path("paper"))
+test_that("discover identifies a direct project without numbered folders", {
+  project <- discover(fixture_path("direct"))
 
-  expect_identical(project$type, "paper")
+  expect_identical(project$type, "direct")
   expect_length(project$folders, 0L)
   expect_true(any(grepl("index\\.qmd$", project$root_documents)))
 })
 
-test_that("projects made only of explicit as-is folders are mixed", {
-  project <- discover(fixture_path("mixed"))
+test_that("projects made only of direct folders are direct", {
+  project <- discover(fixture_path("direct-folders"))
 
-  expect_identical(project$type, "mixed")
-  expect_identical(project$counts$`as-is`, 2L)
-  expect_true(all(vapply(project$folders, `[[`, character(1), "strategy") == "as-is"))
+  expect_identical(project$type, "direct")
+  expect_identical(project$counts$direct, 2L)
+  expect_true(
+    all(vapply(project$folders, `[[`, character(1), "strategy") == "direct")
+  )
 })
 
-test_that("index.txt has local precedence without changing the dominant model", {
-  project <- discover(fixture_path("regular-with-as-is"))
+test_that("index.txt and 00-index.txt are equivalent direct markers", {
+  project <- discover(fixture_path("direct-folders"))
+
+  expect_identical(folder_strategy(project, "01-draft"), "direct")
+  expect_identical(folder_strategy(project, "02-notes"), "direct")
+  expect_identical(project$counts$direct, 2L)
+})
+
+test_that("a direct folder does not change the dominant regular model", {
+  project <- discover(fixture_path("regular-with-direct"))
 
   expect_identical(project$type, "regular")
   expect_identical(folder_strategy(project, "01-intro"), "regular")
-  expect_identical(folder_strategy(project, "02-draft"), "as-is")
+  expect_identical(folder_strategy(project, "02-draft"), "direct")
   expect_identical(project$counts$regular, 1L)
-  expect_identical(project$counts$`as-is`, 1L)
+  expect_identical(project$counts$direct, 1L)
 })
 
 test_that("structured and regular folders produce an incoherent result", {

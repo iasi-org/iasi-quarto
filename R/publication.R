@@ -1,13 +1,11 @@
 #' Print an IASI Quarto publication
 #'
-#' @param x An `iasi_quarto_publication` object.
+#' @param x An `iasi_quarto_publication`.
 #' @param ... Additional arguments, currently unused.
 #'
 #' @return `x`, invisibly.
-#'
 #' @export
 print.iasi_quarto_publication <- function(x, ...) {
-
   cat("IASI Quarto publication\n")
   cat("------------------------\n")
   cat("Path      : ", x$path, "\n", sep = "")
@@ -16,32 +14,23 @@ print.iasi_quarto_publication <- function(x, ...) {
   cat("Chapters  : ", length(x$chapters), "\n", sep = "")
   cat("Artifacts : ", length(x$artifacts), "\n", sep = "")
   cat("Changed   : ", if (isTRUE(x$changed)) "yes" else "no", "\n", sep = "")
+  cat("Rendered  : ", if (isTRUE(x$rendered)) "yes" else "no", "\n", sep = "")
 
-  if (!is.null(x$rendered)) {
-    cat("Rendered  : ", if (isTRUE(x$rendered)) "yes" else "no", "\n", sep = "")
-  }
-
-  if (length(x$profiles) > 0L) {
+  if (length(x$profiles)) {
     cat("Profiles  : ", paste(x$profiles, collapse = ", "), "\n", sep = "")
   }
 
   invisible(x)
 }
 
-
 .new_publication <- function(path,
                              type,
                              source,
-                             chapters,
-                             artifacts,
-                             changed) {
-
+                             chapters = character(),
+                             artifacts = character(),
+                             changed = FALSE) {
   publication <- list(
-    path = normalizePath(
-      path,
-      winslash = "/",
-      mustWork = TRUE
-    ),
+    path = normalizePath(path, winslash = "/", mustWork = TRUE),
     type = type,
     source = source,
     chapters = chapters,
@@ -51,10 +40,6 @@ print.iasi_quarto_publication <- function(x, ...) {
     profiles = character()
   )
 
-  class(publication) <- c(
-    "iasi_quarto_publication",
-    "list"
-  )
-
+  class(publication) <- c("iasi_quarto_publication", "list")
   publication
 }

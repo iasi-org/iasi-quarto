@@ -244,3 +244,46 @@ test_that("regular build is idempotent", {
     second$artifacts
   )
 })
+
+test_that("build returns a direct publication without generating artifacts", {
+  publication_root <- copy_fixture_project("direct")
+
+  publication <- build(
+    validate(
+      discover(publication_root)
+    )
+  )
+
+  expect_s3_class(publication, "iasi_quarto_publication")
+  expect_identical(publication$type, "book")
+  expect_identical(publication$source, "direct")
+  expect_false(publication$changed)
+  expect_length(publication$artifacts, 0L)
+
+  expect_identical(
+    publication$chapters,
+    c("index.qmd", "notes.qmd")
+  )
+
+  expect_false(
+    file.exists(
+      file.path(publication$path, "_book-structure.yml")
+    )
+  )
+})
+
+
+test_that("direct folder markers are not included as content", {
+  publication_root <- copy_fixture_project("direct-folders")
+
+  publication <- build(
+    validate(
+      discover(publication_root)
+    )
+  )
+
+  expect_identical(publication$source, "direct")
+  expect_false(any(grepl("index\\.txt$", publication$chapters)))
+  expect_false(any(grepl("00-index\\.txt$", publication$chapters)))
+  expect_true("chapters/01-draft/draft.qmd" %in% publication$chapters)
+})

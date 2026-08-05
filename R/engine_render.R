@@ -9,7 +9,11 @@
 
   if (!identical(status, 0L)) {
     stop(
-      sprintf("Quarto rendering failed for profile '%s' with status %s.", profile, status),
+      sprintf(
+        "Quarto rendering failed for profile '%s' with status %s.",
+        profile,
+        status
+      ),
       call. = FALSE
     )
   }

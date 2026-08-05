@@ -14,7 +14,9 @@
 }
 
 .relative_path <- function(path, root) {
-  if (!length(path)) return(character())
+  if (!length(path)) {
+    return(character())
+  }
 
   root <- .slash(normalizePath(root, winslash = "/", mustWork = TRUE))
   paths <- .slash(normalizePath(path, winslash = "/", mustWork = FALSE))
@@ -32,4 +34,8 @@
     character(1),
     USE.NAMES = FALSE
   )
+}
+
+.slash <- function(path) {
+  gsub("\\\\", "/", path)
 }

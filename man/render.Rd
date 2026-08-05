@@ -11,7 +11,7 @@ render(publication = NULL, profile = "all", path = ".")
 
 \item{profile}{One of \code{"all"}, \code{"html"} or \code{"pdf"}.}
 
-\item{path}{Directory containing \verb{_quarto.yml} when \code{publication} is \code{NULL}.}
+\item{path}{Directory containing \verb{_quarto.yml} when \code{publication} is NULL.}
 }
 \value{
 Invisibly returns the rendered \code{iasi_quarto_publication}.

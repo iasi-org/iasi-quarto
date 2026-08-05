@@ -9,13 +9,13 @@ build(project = NULL, path = ".")
 \arguments{
 \item{project}{An optional \code{iasi_quarto_project}.}
 
-\item{path}{Directory containing \verb{_quarto.yml}, used when \code{project} is \code{NULL}.}
+\item{path}{Directory containing \verb{_quarto.yml}, used when \code{project} is NULL.}
 }
 \value{
 Invisibly returns an \code{iasi_quarto_publication}.
 }
 \description{
-Discovers and validates a project when necessary, generates the artifacts
-required by the publication, and returns an independent publication model.
+Discovers and validates a project when necessary, generates any artifacts
+required by its model, and returns an independent publication object.
 It does not invoke Quarto.
 }

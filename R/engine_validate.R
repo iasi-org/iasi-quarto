@@ -1,16 +1,14 @@
 .validate_project <- function(project) {
-  if (!inherits(project, "iasi_quarto_project")) {
-    stop(
-      "'project' must be an object returned by discover().",
-      call. = FALSE
-    )
-  }
+  .assert_project(project)
 
   errors <- character()
   warnings <- character()
 
   if (identical(project$type, "incoherent")) {
-    errors <- c(errors, "The publication structure is incoherent.")
+    errors <- c(
+      errors,
+      "The publication structure is incoherent."
+    )
   }
 
   conflicting_folders <- Filter(
@@ -22,8 +20,14 @@
     project$folders
   )
 
-  if (length(conflicting_folders) > 0L) {
-    folder_names <- vapply(conflicting_folders, `[[`, character(1), "name")
+  if (length(conflicting_folders)) {
+    folder_names <- vapply(
+      conflicting_folders,
+      `[[`,
+      character(1),
+      "name"
+    )
+
     errors <- c(
       errors,
       sprintf(
@@ -38,8 +42,14 @@
     project$folders
   )
 
-  if (length(unclassified_folders) > 0L) {
-    folder_names <- vapply(unclassified_folders, `[[`, character(1), "name")
+  if (length(unclassified_folders)) {
+    folder_names <- vapply(
+      unclassified_folders,
+      `[[`,
+      character(1),
+      "name"
+    )
+
     errors <- c(
       errors,
       sprintf(
@@ -49,17 +59,26 @@
     )
   }
 
-  as_is_folders <- Filter(
-    function(folder) identical(folder$strategy, "as-is"),
+  direct_folders <- Filter(
+    function(folder) identical(folder$strategy, "direct"),
     project$folders
   )
 
-  if (length(as_is_folders) > 0L) {
-    folder_names <- vapply(as_is_folders, `[[`, character(1), "name")
+  if (length(direct_folders)) {
+    folder_names <- vapply(
+      direct_folders,
+      `[[`,
+      character(1),
+      "name"
+    )
+
     warnings <- c(
       warnings,
       sprintf(
-        "Folders processed as-is because they contain index.txt: %s.",
+        paste0(
+          "Folders processed directly because they contain ",
+          "index.txt or 00-index.txt: %s."
+        ),
         paste(folder_names, collapse = ", ")
       )
     )

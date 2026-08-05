@@ -8,39 +8,28 @@
 #'
 #' @param publication An optional `iasi_quarto_publication`.
 #' @param profile One of `"all"`, `"html"` or `"pdf"`.
-#' @param path Directory containing `_quarto.yml` when `publication` is `NULL`.
+#' @param path Directory containing `_quarto.yml` when `publication` is NULL.
 #'
 #' @return Invisibly returns the rendered `iasi_quarto_publication`.
 #' @export
-render <- function(publication = NULL,
-                   profile = "all",
-                   path = ".") {
-
+render <- function(publication = NULL, profile = "all", path = ".") {
   if (
     is.character(publication) &&
-    length(publication) == 1L &&
-    publication %in% c("all", "html", "pdf") &&
-    identical(profile, "all")
+      length(publication) == 1L &&
+      publication %in% c("all", "html", "pdf") &&
+      identical(profile, "all")
   ) {
     profile <- publication
     publication <- NULL
   }
 
-  profile <- match.arg(
-    profile,
-    c("all", "html", "pdf")
-  )
+  profile <- match.arg(profile, c("all", "html", "pdf"))
 
   if (is.null(publication)) {
     publication <- build(path = path)
   }
 
-  if (!inherits(publication, "iasi_quarto_publication")) {
-    stop(
-      "'publication' must be an object returned by build().",
-      call. = FALSE
-    )
-  }
+  .assert_publication(publication)
 
   profiles <- if (identical(profile, "all")) {
     c("html", "pdf")
@@ -49,10 +38,7 @@ render <- function(publication = NULL,
   }
 
   for (selected_profile in profiles) {
-    .render_profile(
-      publication$path,
-      selected_profile
-    )
+    .render_profile(publication$path, selected_profile)
   }
 
   publication$rendered <- TRUE

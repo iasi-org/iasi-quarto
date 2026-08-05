@@ -9,8 +9,8 @@ Authors@R: person(
     role = c("aut", "cre")
     )
 Description: Discovers, validates, builds, and renders Quarto publications
-    from their project structure. The package recognizes structured books,
-    regular books, and papers, generates the Quarto artifacts required by
+    from their project structure. The package recognizes structured, regular,
+    and direct publication models, generates the Quarto artifacts required by
     each model, and keeps construction separate from rendering.
 License: MIT + file LICENSE
 Encoding: UTF-8
@@ -19,10 +19,11 @@ LazyData: true
 Depends:
     R (>= 4.2.0)
 Imports:
-    yaml
+    stats, utils
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 8.0.0
 Suggests: 
      testthat (>= 3.0.0)
     ,withr
+    ,yaml
 Config/testthat/edition: 3

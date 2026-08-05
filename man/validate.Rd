@@ -12,8 +12,8 @@ validate(project = NULL, path = ".")
 \item{path}{Directory containing \verb{_quarto.yml}, used when \code{project} is NULL.}
 }
 \value{
-Invisibly returns the same \code{iasi_quarto_project} object, enriched
-with \code{valid}, \code{errors} and \code{warnings}.
+Invisibly returns the same \code{iasi_quarto_project}, enriched with
+\code{valid}, \code{errors} and \code{warnings}.
 }
 \description{
 Enriches a project discovered by \code{\link[=discover]{discover()}} with validation status,

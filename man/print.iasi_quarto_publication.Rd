@@ -7,7 +7,7 @@
 \method{print}{iasi_quarto_publication}(x, ...)
 }
 \arguments{
-\item{x}{An \code{iasi_quarto_publication} object.}
+\item{x}{An \code{iasi_quarto_publication}.}
 
 \item{...}{Additional arguments, currently unused.}
 }

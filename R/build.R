@@ -1,70 +1,42 @@
 #' Build an IASI Quarto publication
 #'
-#' Discovers and validates a project when necessary, generates the artifacts
-#' required by the publication, and returns an independent publication model.
+#' Discovers and validates a project when necessary, generates any artifacts
+#' required by its model, and returns an independent publication object.
 #' It does not invoke Quarto.
 #'
 #' @param project An optional `iasi_quarto_project`.
-#' @param path Directory containing `_quarto.yml`, used when `project` is `NULL`.
+#' @param path Directory containing `_quarto.yml`, used when `project` is NULL.
 #'
 #' @return Invisibly returns an `iasi_quarto_publication`.
 #' @export
 build <- function(project = NULL, path = ".") {
-
   if (is.null(project)) {
     project <- discover(path)
   }
 
-  if (!inherits(project, "iasi_quarto_project")) {
-    stop(
-      "'project' must be an object returned by discover().",
-      call. = FALSE
-    )
-  }
+  .assert_project(project)
 
   if (is.null(project$valid)) {
     project <- .validate_project(project)
   }
 
-  if (!isTRUE(project$valid)) {
-    stop(
-      paste(
-        c(
-          "Project validation failed:",
-          paste0("- ", project$errors)
-        ),
-        collapse = "\n"
-      ),
-      call. = FALSE
-    )
-  }
+  .assert_valid_project(project)
 
   project <- switch(
     project$type,
     structured = .build_structured(project),
     regular = .build_regular(project),
-    paper = .build_paper(project),
-    mixed = stop(
-      "'mixed' projects are not yet supported by build().",
+    direct = .build_direct(project),
+    incoherent = stop(
+      "An incoherent project cannot be built.",
       call. = FALSE
     ),
     stop(
-      sprintf(
-        "Unsupported publication type '%s'.",
-        project$type
-      ),
+      sprintf("Unsupported publication type '%s'.", project$type),
       call. = FALSE
     )
   )
 
-  publication <- project$publication
-
-  if (!inherits(publication, "iasi_quarto_publication")) {
-    stop(
-      "The build engine did not create a valid publication.",
-      call. = FALSE
-    )
-  }
-
-  invisible(publication)
+  .assert_publication(project$publication)
+  invisible(project$publication)
 }
