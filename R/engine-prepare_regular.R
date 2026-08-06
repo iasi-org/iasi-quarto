@@ -64,11 +64,6 @@
 
   content = c(
     .generated_header,
-    "",
-    sprintf(
-      "# %s",
-      .folder_title(folder$name)
-    ),
     ""
   )
 
@@ -95,26 +90,4 @@
       target
     )
   )
-}
-
-.folder_title = function(name) {
-  title = sub(
-    "^[0-9]+-",
-    "",
-    name
-  )
-
-  title = gsub(
-    "[-_]+",
-    " ",
-    title
-  )
-
-  title = trimws(title)
-
-  if (!nzchar(title)) {
-    return(name)
-  }
-
-  tools::toTitleCase(title)
 }
