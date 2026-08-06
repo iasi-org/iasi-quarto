@@ -1,7 +1,7 @@
 Package: iasi.quarto
 Type: Package
 Title: Build System for Quarto Publications
-Version: 0.5.0
+Version: 0.5.1
 Authors@R: person(
     given = "Javier",
     family = "G. Grandez",
