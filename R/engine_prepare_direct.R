@@ -1,4 +1,4 @@
-.build_direct <- function(project) {
+.prepare_direct <- function(project) {
   .assert_valid_project(project)
 
   root_documents <- .relative_path(

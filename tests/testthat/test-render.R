@@ -12,7 +12,7 @@ test_that("publication stores the project path required by render", {
 
   publication_root <- copy_fixture_project("structured")
 
-  publication <- build(
+  publication <- prepare(
     validate(
       discover(publication_root)
     )

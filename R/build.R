@@ -1,42 +1,32 @@
-#' Build an IASI Quarto publication
+#' Build Quarto publications
 #'
-#' Discovers and validates a project when necessary, generates any artifacts
-#' required by its model, and returns an independent publication object.
-#' It does not invoke Quarto.
+#' Builds one or more Quarto publications.
 #'
-#' @param project An optional `iasi_quarto_project`.
-#' @param path Directory containing `_quarto.yml`, used when `project` is NULL.
+#' `build()` automatically adapts to the current working directory.
 #'
-#' @return Invisibly returns an `iasi_quarto_publication`.
+#' When executed inside a Quarto project, the current project is built.
+#' When executed from the root of a multibook workspace, one or more books
+#' can be selected.
+#'
+#' @param book Book or books to build.
+#' @param format Output format or formats.
+#'
+#' @return
+#' A build execution plan.
+#'
 #' @export
-build <- function(project = NULL, path = ".") {
-  if (is.null(project)) {
-    project <- discover(path)
-  }
+build = function(book = NULL, format = NULL) {
 
-  .assert_project(project)
+   started_at = Sys.time()   
+   
+   plan = .parse_command_line(book = book, format = format)
+   plan = .resolve_current_project(plan)
+   plan = .resolve_books(plan)
+    
+   results = lapply(plan$books, .process_book,formats = plan$formats, change_directory = !plan$current)  
+   
+   .summarise_process(plan = plan, results = results, started_at = started_at)
 
-  if (is.null(project$valid)) {
-    project <- .validate_project(project)
-  }
+  invisible(results)   
 
-  .assert_valid_project(project)
-
-  project <- switch(
-    project$type,
-    structured = .build_structured(project),
-    regular = .build_regular(project),
-    direct = .build_direct(project),
-    incoherent = stop(
-      "An incoherent project cannot be built.",
-      call. = FALSE
-    ),
-    stop(
-      sprintf("Unsupported publication type '%s'.", project$type),
-      call. = FALSE
-    )
-  )
-
-  .assert_publication(project$publication)
-  invisible(project$publication)
 }
