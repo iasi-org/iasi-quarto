@@ -62,7 +62,22 @@
     "index.qmd"
   )
 
+  front_matter = .read_regular_front_matter(
+    folder$path
+  )
+
+  content = character()
+
+  if (length(front_matter)) {
+    content = c(
+      content,
+      front_matter,
+      ""
+    )
+  }
+
   content = c(
+    content,
     .generated_header,
     ""
   )
@@ -89,5 +104,22 @@
       content,
       target
     )
+  )
+}
+
+.read_regular_front_matter = function(path) {
+  front_matter_path = file.path(
+    path,
+    "front-matter.quarto"
+  )
+
+  if (!file.exists(front_matter_path)) {
+    return(character())
+  }
+
+  readLines(
+    front_matter_path,
+    warn = FALSE,
+    encoding = "UTF-8"
   )
 }
