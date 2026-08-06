@@ -14,8 +14,8 @@
 #'
 #' @return Invisibly returns the same `iasi_quarto_plan`, enriched with
 #'   validation results.
-#' @export
-check = function(plan) {
+
+.check = function(plan) {
   .assert_discovered_plan(plan)
 
   plan$projects = lapply(

@@ -39,3 +39,45 @@
 
   invisible(plan)
 }
+
+.assert_checked_plan = function(plan) {
+  .assert_discovered_plan(plan)
+
+  if (
+    is.null(plan$valid) ||
+      !is.logical(plan$valid) ||
+      length(plan$valid) != 1L
+  ) {
+    stop(
+      "`plan` must be an object returned by check().",
+      call. = FALSE
+    )
+  }
+
+  if (!isTRUE(plan$valid)) {
+    errors = unlist(
+      lapply(
+        plan$projects,
+        `[[`,
+        "errors"
+      ),
+      use.names = FALSE
+    )
+
+    stop(
+      paste(
+        c(
+          "IASI Quarto check failed:",
+          paste0(
+            "- ",
+            errors
+          )
+        ),
+        collapse = "\n"
+      ),
+      call. = FALSE
+    )
+  }
+
+  invisible(plan)
+}
