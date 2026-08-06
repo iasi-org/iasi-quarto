@@ -17,7 +17,7 @@ render(publication = NULL, profile = "all", path = ".")
 Invisibly returns the rendered \code{iasi_quarto_publication}.
 }
 \description{
-Accepts an existing publication or builds one from a project path, then
+Accepts an existing publication or prepares one from a project path, then
 invokes Quarto for the selected profile.
 }
 \details{

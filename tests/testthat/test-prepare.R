@@ -1,17 +1,18 @@
 test_that("prepare returns a structured publication", {
 
-  publication_root <- copy_fixture_project("structured")
+  publication_root = copy_fixture_project("structured")
 
-  project <- validate(
+  project = validate(
     discover(publication_root)
   )
 
-  publication <- prepare(project)
+  publication = prepare(project)
 
   expect_s3_class(
     publication,
     "iasi_quarto_publication"
   )
+
   expect_identical(
     publication$path,
     normalizePath(
@@ -20,6 +21,7 @@ test_that("prepare returns a structured publication", {
       mustWork = TRUE
     )
   )
+
   expect_identical(publication$type, "book")
   expect_identical(publication$source, "structured")
   expect_true(publication$changed)
@@ -45,15 +47,15 @@ test_that("prepare returns a structured publication", {
 
 test_that("prepare writes the structured book YAML", {
 
-  publication_root <- copy_fixture_project("structured")
+  publication_root = copy_fixture_project("structured")
 
-  publication <- prepare(
+  publication = prepare(
     validate(
       discover(publication_root)
     )
   )
 
-  output <- file.path(
+  output = file.path(
     publication$path,
     "_book-structure.yml"
   )
@@ -83,14 +85,14 @@ test_that("prepare writes the structured book YAML", {
 
 test_that("structured prepare is idempotent", {
 
-  publication_root <- copy_fixture_project("structured")
+  publication_root = copy_fixture_project("structured")
 
-  project <- validate(
+  project = validate(
     discover(publication_root)
   )
 
-  first <- prepare(project)
-  second <- prepare(project)
+  first = prepare(project)
+  second = prepare(project)
 
   expect_true(first$changed)
   expect_false(second$changed)
@@ -104,9 +106,9 @@ test_that("structured prepare is idempotent", {
 
 test_that("prepare returns a regular publication", {
 
-  publication_root <- copy_fixture_project("regular")
+  publication_root = copy_fixture_project("regular")
 
-  publication <- prepare(
+  publication = prepare(
     validate(
       discover(publication_root)
     )
@@ -116,6 +118,7 @@ test_that("prepare returns a regular publication", {
     publication,
     "iasi_quarto_publication"
   )
+
   expect_identical(publication$type, "book")
   expect_identical(publication$source, "regular")
   expect_true(publication$changed)
@@ -124,84 +127,64 @@ test_that("prepare returns a regular publication", {
     publication$chapters,
     c(
       "index.qmd",
-      "chapters/01-intro/index.qmd",
-      "chapters/02-install/index.qmd"
+      "chapters/01-intro/00-index.qmd",
+      "chapters/01-intro/01-what.qmd",
+      "chapters/02-install/00-index.qmd"
     )
   )
 
   expect_identical(
     publication$artifacts,
-    c(
-      "chapters/01-intro/index.qmd",
-      "chapters/02-install/index.qmd",
-      "_book-structure.yml"
-    )
+    "_book-structure.yml"
   )
 })
 
 
-test_that("regular prepare creates chapter indexes", {
+test_that("regular prepare does not create chapter indexes", {
 
-  publication_root <- copy_fixture_project("regular")
+  publication_root = copy_fixture_project("regular")
 
-  publication <- prepare(
+  publication = prepare(
     validate(
       discover(publication_root)
     )
   )
 
-  intro_index <- file.path(
-    publication$path,
+  intro_index = file.path(
+    publication_root,
     "chapters",
     "01-intro",
     "index.qmd"
   )
 
-  install_index <- file.path(
-    publication$path,
+  install_index = file.path(
+    publication_root,
     "chapters",
     "02-install",
     "index.qmd"
   )
 
-  expect_true(file.exists(intro_index))
-  expect_true(file.exists(install_index))
+  expect_false(file.exists(intro_index))
+  expect_false(file.exists(install_index))
 
   expect_identical(
-    readLines(
-      intro_index,
-      warn = FALSE,
-      encoding = "UTF-8"
-    ),
-    c(
-      "{{< include 00-index.qmd >}}",
-      "",
-      "{{< include 01-what.qmd >}}"
-    )
-  )
-
-  expect_identical(
-    readLines(
-      install_index,
-      warn = FALSE,
-      encoding = "UTF-8"
-    ),
-    "{{< include 00-index.qmd >}}"
+    publication$artifacts,
+    "_book-structure.yml"
   )
 })
 
 
 test_that("regular prepare writes the book structure", {
 
-  publication_root <- copy_fixture_project("regular")
+  publication_root = copy_fixture_project("regular")
 
-  publication <- prepare(
+  publication = prepare(
     validate(
       discover(publication_root)
     )
   )
 
-  output <- file.path(
+  output = file.path(
     publication$path,
     "_book-structure.yml"
   )
@@ -218,8 +201,9 @@ test_that("regular prepare writes the book structure", {
       "book:",
       "  chapters:",
       "    - \"index.qmd\"",
-      "    - \"chapters/01-intro/index.qmd\"",
-      "    - \"chapters/02-install/index.qmd\""
+      "    - \"chapters/01-intro/00-index.qmd\"",
+      "    - \"chapters/01-intro/01-what.qmd\"",
+      "    - \"chapters/02-install/00-index.qmd\""
     )
   )
 })
@@ -227,14 +211,14 @@ test_that("regular prepare writes the book structure", {
 
 test_that("regular prepare is idempotent", {
 
-  publication_root <- copy_fixture_project("regular")
+  publication_root = copy_fixture_project("regular")
 
-  project <- validate(
+  project = validate(
     discover(publication_root)
   )
 
-  first <- prepare(project)
-  second <- prepare(project)
+  first = prepare(project)
+  second = prepare(project)
 
   expect_true(first$changed)
   expect_false(second$changed)
@@ -245,16 +229,22 @@ test_that("regular prepare is idempotent", {
   )
 })
 
-test_that("prepare returns a direct publication without generating artifacts", {
-  publication_root <- copy_fixture_project("direct")
 
-  publication <- prepare(
+test_that("prepare returns a direct publication without generating artifacts", {
+
+  publication_root = copy_fixture_project("direct")
+
+  publication = prepare(
     validate(
       discover(publication_root)
     )
   )
 
-  expect_s3_class(publication, "iasi_quarto_publication")
+  expect_s3_class(
+    publication,
+    "iasi_quarto_publication"
+  )
+
   expect_identical(publication$type, "book")
   expect_identical(publication$source, "direct")
   expect_false(publication$changed)
@@ -262,21 +252,28 @@ test_that("prepare returns a direct publication without generating artifacts", {
 
   expect_identical(
     publication$chapters,
-    c("index.qmd", "notes.qmd")
+    c(
+      "index.qmd",
+      "notes.qmd"
+    )
   )
 
   expect_false(
     file.exists(
-      file.path(publication$path, "_book-structure.yml")
+      file.path(
+        publication$path,
+        "_book-structure.yml"
+      )
     )
   )
 })
 
 
 test_that("direct folder markers are not included as content", {
-  publication_root <- copy_fixture_project("direct-folders")
 
-  publication <- prepare(
+  publication_root = copy_fixture_project("direct-folders")
+
+  publication = prepare(
     validate(
       discover(publication_root)
     )
@@ -285,5 +282,8 @@ test_that("direct folder markers are not included as content", {
   expect_identical(publication$source, "direct")
   expect_false(any(grepl("index\\.txt$", publication$chapters)))
   expect_false(any(grepl("00-index\\.txt$", publication$chapters)))
-  expect_true("chapters/01-draft/draft.qmd" %in% publication$chapters)
+  expect_true(
+    "chapters/01-draft/draft.qmd" %in%
+      publication$chapters
+  )
 })

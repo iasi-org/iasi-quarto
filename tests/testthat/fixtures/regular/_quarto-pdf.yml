@@ -1,0 +1,8 @@
+# _quarto-pdf.yml
+project:
+  output-dir: outputs/pdf
+
+format:
+  pdf:
+    toc: true
+    number-sections: true

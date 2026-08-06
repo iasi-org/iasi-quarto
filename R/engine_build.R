@@ -69,19 +69,22 @@
 }
 
 .resolve_current_project = function(plan) {
-  if (!file.exists("_quarto.yml")) return(plan)
-
-  warning(
-    paste0(
-      "A _quarto.yml file was found in the current directory. ",
-      "The `book` selection will be ignored."
-    ),
-    call. = FALSE
+  plan$current = file.exists(
+    file.path(getwd(), "_quarto.yml")
   )
 
-  plan$current = TRUE
-  plan$books =  normalizePath(getwd(), winslash = "/", mustWork = TRUE)
-
+  if (
+    plan$current &&
+    !identical(plan$books, "all")
+  ) {
+    warning(
+      paste0(
+        "A _quarto.yml file was found in the current directory. ",
+        "The `book` selection will be ignored."
+      ),
+      call. = FALSE
+    )
+  }
 
   plan
 }

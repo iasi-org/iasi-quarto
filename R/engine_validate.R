@@ -4,6 +4,22 @@
   errors <- character()
   warnings <- character()
 
+  required_profiles = c("_quarto-html.yml", "_quarto-pdf.yml")
+
+  missing_profiles = required_profiles[!file.exists(file.path(project$path,required_profiles))]
+
+  if (length(missing_profiles) > 0L) {
+    errors = c(
+      errors,
+      sprintf(
+        "Missing Quarto profile files: %s.",
+        paste(
+          missing_profiles,
+          collapse = ", "
+        )
+      )
+    )
+  }  
   if (identical(project$type, "incoherent")) {
     errors <- c(
       errors,

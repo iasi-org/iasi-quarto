@@ -5,9 +5,7 @@
     character()
   }
 
-  if (identical(current, content)) {
-    return(FALSE)
-  }
+  if (identical(current, content)) return(FALSE)
 
   writeLines(content, path, useBytes = TRUE)
   TRUE
