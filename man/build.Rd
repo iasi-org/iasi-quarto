@@ -2,25 +2,32 @@
 % Please edit documentation in R/build.R
 \name{build}
 \alias{build}
-\title{Build Quarto publications}
+\title{Build IASI Quarto publications}
 \usage{
-build(book = NULL, format = NULL)
+build(book = NULL, format = NULL, path = ".")
 }
 \arguments{
-\item{book}{Book or books to build.}
+\item{book}{Publication or publications to build. A publication can be
+selected by its complete directory name, its name without the numeric
+prefix, or its numeric prefix. Use \code{"all"} or \code{NULL} to build every
+publication. This argument is ignored when \code{path} is itself a publication.}
 
-\item{format}{Output format or formats.}
+\item{format}{Output format or formats. Use \code{"html"}, \code{"pdf"}, \code{"all"} or
+\code{NULL}. \code{NULL} and \code{"all"} select every supported format.}
+
+\item{path}{IASI Quarto publication or multiproject directory.}
 }
 \value{
-A build execution plan.
+Invisibly returns the completed \code{iasi_quarto_plan}. Returns \code{NULL}
+when \code{path} does not appear to be an IASI Quarto workspace.
 }
 \description{
-Builds one or more Quarto publications.
+Validates an IASI Quarto workspace and runs the complete build pipeline for
+one or more selected publications and output formats.
 }
 \details{
-\code{build()} automatically adapts to the current working directory.
-
-When executed inside a Quarto project, the current project is built.
-When executed from the root of a multibook workspace, one or more books
-can be selected.
+\code{build()} is the main entry point for generating IASI Quarto publications.
+It recognises the workspace, selects publications, discovers and checks
+their configuration, prepares derived artifacts, and invokes Quarto for
+every selected publication and format.
 }

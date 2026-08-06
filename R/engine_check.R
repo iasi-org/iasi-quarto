@@ -1,3 +1,34 @@
+#' Check discovered IASI Quarto publications
+#'
+#' Checks the configuration and structure of every publication discovered in
+#' an IASI Quarto plan.
+#'
+#' @param plan An `iasi_quarto_plan` returned by `.discover()`.
+#'
+#' @return Invisibly returns the checked plan.
+#'
+#' @noRd
+.check = function(plan) {
+  .assert_discovered_plan(plan)
+
+  plan$projects = lapply(
+    plan$projects,
+    .check_project
+  )
+
+  plan$valid = all(vapply(
+    plan$projects,
+    function(project) {
+      isTRUE(project$valid)
+    },
+    logical(1)
+  ))
+
+  .report_check(plan)
+
+  invisible(plan)
+}
+
 .check_project = function(project) {
   errors = character()
   warnings = character()

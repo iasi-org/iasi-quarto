@@ -127,10 +127,10 @@ test_that("build accepts one selected format", {
   )
 })
 
-test_that("build renders every publication in a multiproject", {
+test_that("build renders every publication in a multi", {
   root = .copy_test_fixture(
     "build",
-    "multiproject"
+    "multi"
   )
 
   calls = new.env(
@@ -172,8 +172,8 @@ test_that("build renders every publication in a multiproject", {
     c(
       "01-user-guide",
       "01-user-guide",
-      "02-developer-guide",
-      "02-developer-guide"
+      "02-dev-guide",
+      "02-dev-guide"
     )
   )
 
@@ -191,7 +191,7 @@ test_that("build renders every publication in a multiproject", {
 test_that("build selects a book by name without its numeric prefix", {
   root = .copy_test_fixture(
     "build",
-    "multiproject"
+    "multi"
   )
 
   calls = new.env(
@@ -238,7 +238,7 @@ test_that("build selects a book by name without its numeric prefix", {
 test_that("build selects a book by numeric prefix", {
   root = .copy_test_fixture(
     "build",
-    "multiproject"
+    "multi"
   )
 
   calls = new.env(
@@ -273,14 +273,14 @@ test_that("build selects a book by numeric prefix", {
 
   expect_identical(
     calls$books,
-    "02-developer-guide"
+    "02-dev-guide"
   )
 })
 
 test_that("build warns about missing books and builds resolved books", {
   root = .copy_test_fixture(
     "build",
-    "multiproject"
+    "multi"
   )
 
   calls = new.env(

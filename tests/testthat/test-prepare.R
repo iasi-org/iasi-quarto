@@ -95,7 +95,7 @@ test_that("prepare generates regular indexes and book structure", {
 test_that("prepare updates an existing regular index", {
   root = .copy_test_fixture(
     "prepare",
-    "regular-existing-index"
+    "regular-index"
   )
 
   index_path = file.path(

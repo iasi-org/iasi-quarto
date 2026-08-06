@@ -2,20 +2,27 @@
 % Please edit documentation in R/validate.R
 \name{validate}
 \alias{validate}
-\title{Validate an IASI Quarto project}
+\title{Validate an IASI Quarto workspace}
 \usage{
-validate(project = NULL, path = ".")
+validate(path = ".")
 }
 \arguments{
-\item{project}{An object returned by \code{\link[=discover]{discover()}}.}
-
-\item{path}{Directory containing \verb{_quarto.yml}, used when \code{project} is NULL.}
+\item{path}{Directory to inspect.}
 }
 \value{
-Invisibly returns the same \code{iasi_quarto_project}, enriched with
-\code{valid}, \code{errors} and \code{warnings}.
+Invisibly returns an object of class \code{iasi_quarto_plan} when an
+IASI Quarto publication or multiproject is found. Returns \code{NULL}
+otherwise.
 }
 \description{
-Enriches a project discovered by \code{\link[=discover]{discover()}} with validation status,
-errors and warnings.
+Checks whether \code{path} appears to be an IASI Quarto publication or a
+multiproject containing one or more IASI Quarto publications.
+}
+\details{
+A directory is recognised as an IASI Quarto publication only when it
+contains both \verb{_quarto.yml} and \code{iasi.yml}. If the directory itself is not
+a publication, \code{validate()} searches its subdirectories recursively.
+
+This function only recognises the workspace. It does not read \code{iasi.yml},
+inspect the publication structure, or validate its contents.
 }
