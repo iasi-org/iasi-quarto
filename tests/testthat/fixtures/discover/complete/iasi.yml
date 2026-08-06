@@ -1,0 +1,4 @@
+publication:
+  strategy: structured
+  content-dir: sections
+  numbered: false

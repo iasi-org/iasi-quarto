@@ -1,25 +1,180 @@
-# Parse command-line selections ---------------------------------------------
+.supported_formats = c(
+  "html",
+  "pdf"
+)
 
-.parse_command_line <- function(book = "all", format = "all") {
-    books = .normalise_selection(value = book, argument = "book" )
-    formats = .normalise_selection(value = format, argument = "format",choices = c("all", .supported_formats))
+.resolve_build_formats = function(format = NULL) {
+  selection = .normalise_build_selection(
+    value = format,
+    argument = "format"
+  )
 
-    if (identical(formats, "all")) formats = .supported_formats
+  if (identical(selection, "all")) {
+    return(.supported_formats)
+  }
 
-    plan = list(current = FALSE, books = books, formats = formats)
-    class(plan) = c("iasi_quarto_plan", "list")
-    plan
+  invalid = setdiff(
+    selection,
+    .supported_formats
+  )
+
+  if (length(invalid)) {
+    stop(
+      sprintf(
+        "Unsupported format%s: %s. Supported formats are: %s.",
+        if (length(invalid) == 1L) {
+          ""
+        } else {
+          "s"
+        },
+        paste(
+          sprintf(
+            '"%s"',
+            invalid
+          ),
+          collapse = ", "
+        ),
+        paste(
+          sprintf(
+            '"%s"',
+            .supported_formats
+          ),
+          collapse = ", "
+        )
+      ),
+      call. = FALSE
+    )
+  }
+
+  selection
 }
 
-.normalise_selection <- function(value, argument, choices = NULL) {
+.select_build_books = function(plan, book = NULL) {
+  selection = .normalise_build_selection(
+    value = book,
+    argument = "book"
+  )
+
+  if (isTRUE(plan$current)) {
+    if (!identical(selection, "all")) {
+      warning(
+        paste0(
+          "The selected path is an IASI Quarto publication. ",
+          "The `book` selection will be ignored."
+        ),
+        call. = FALSE
+      )
+    }
+
+    plan$selected_books = plan$books
+
+    return(plan)
+  }
+
+  if (identical(selection, "all")) {
+    plan$selected_books = plan$books
+
+    return(plan)
+  }
+
+  candidates = plan$books
+
+  relative_paths = unname(vapply(
+    candidates,
+    .relative_path,
+    character(1),
+    root = plan$path
+  ))
+
+  directory_names = basename(candidates)
+
+  book_names = sub(
+    "^[0-9]+-",
+    "",
+    directory_names
+  )
+
+  number_prefixes = sub(
+    "-.*$",
+    "",
+    directory_names
+  )
+
+  resolved = character()
+  missing = character()
+
+  for (requested in selection) {
+    matches = requested == relative_paths |
+      requested == directory_names |
+      requested == book_names
+
+    if (grepl(
+      "^[0-9]+$",
+      requested
+    )) {
+      matches = matches |
+        suppressWarnings(
+          as.integer(number_prefixes)
+        ) == as.integer(requested)
+    }
+
+    if (!any(matches)) {
+      missing = c(
+        missing,
+        requested
+      )
+
+      next
+    }
+
+    resolved = c(
+      resolved,
+      candidates[matches]
+    )
+  }
+
+  if (length(missing)) {
+    warning(
+      sprintf(
+        "Books not found: %s.",
+        paste(
+          sprintf(
+            '"%s"',
+            missing
+          ),
+          collapse = ", "
+        )
+      ),
+      call. = FALSE
+    )
+  }
+
+  resolved = unique(resolved)
+
+  if (!length(resolved)) {
+    stop(
+      "No IASI Quarto publications were selected.",
+      call. = FALSE
+    )
+  }
+
+  plan$books = resolved
+  plan$selected_books = resolved
+
+  plan
+}
+
+.normalise_build_selection = function(value, argument) {
   if (is.null(value)) {
     return("all")
   }
 
-  value <- unique(as.character(value))
+  value = unique(
+    as.character(value)
+  )
 
   if (
-    length(value) == 0L ||
+    !length(value) ||
       anyNA(value) ||
       any(!nzchar(value))
   ) {
@@ -32,180 +187,76 @@
     )
   }
 
-  if ("all" %in% value && length(value) > 1L) {
+  if (
+    "all" %in% value &&
+      length(value) > 1L
+  ) {
     stop(
       sprintf(
-        "`%s = \"all\"` cannot be combined with other values.",
+        '`%s = "all"` cannot be combined with other values.',
         argument
       ),
       call. = FALSE
     )
   }
 
-  if (!is.null(choices)) {
-    invalid_values <- setdiff(value, choices)
-
-    if (length(invalid_values) > 0L) {
-      stop(
-        sprintf(
-          "`%s` contains invalid value%s: %s. Valid values are: %s.",
-          argument,
-          if (length(invalid_values) == 1L) "" else "s",
-          paste(
-            sprintf('"%s"', invalid_values),
-            collapse = ", "
-          ),
-          paste(
-            sprintf('"%s"', choices),
-            collapse = ", "
-          )
-        ),
-        call. = FALSE
-      )
-    }
-  }
-
   value
 }
 
-.resolve_current_project = function(plan) {
-  plan$current = file.exists(
-    file.path(getwd(), "_quarto.yml")
-  )
+.render_build_project = function(project, formats) {
+  publication = project$publication
 
-  if (
-    plan$current &&
-    !identical(plan$books, "all")
-  ) {
-    warning(
-      paste0(
-        "A _quarto.yml file was found in the current directory. ",
-        "The `book` selection will be ignored."
-      ),
-      call. = FALSE
+  for (format in formats) {
+    message(sprintf(
+      "Rendering '%s' as %s...",
+      project$name,
+      toupper(format)
+    ))
+
+    publication = .render(
+      publication = publication,
+      format = format
     )
   }
 
-  plan
+  project$publication = publication
+  project
 }
 
-# Busca los subdirectorios que existen con formato numero-texto
-# La entrada puede ser el numero, el texto o todo
-# selecciona los que matchean la entrada y los dubdirectorios
-#
-# Si la entrada es all, no mira nada, los pega todos
-
-.resolve_books = function(plan) {
-  if (plan$current) {
-    plan$books = getwd()
-    return(plan)
-  }
-
-  directories = list.dirs(
-    path = ".",
-    recursive = FALSE,
-    full.names = TRUE
-  )
-
-  directory_names = basename(directories)
-
-  valid_format = grepl(
-    "^\\d+-.+$",
-    directory_names
-  )
-
-  number_prefix = sub(
-    "-.*$",
-    "",
-    directory_names
-  )
-
-  valid = valid_format &
-    grepl("[1-9]", number_prefix)
-
-  directories = directories[valid]
-  directory_names = directory_names[valid]
-  number_prefix = number_prefix[valid]
-
-  book_names = sub(
-    "^\\d+-",
-    "",
-    directory_names
-  )
-
-  if (identical(plan$books, "all")) {
-    plan$books = directories
-    return(plan)
-  }
-
-  resolved = character()
-  missing = character()
-
-  for (book in plan$books) {
-    matches = directory_names == book |
-      book_names == book
-
-    if (grepl("^\\d+$", book)) {
-      matches = matches |
-        as.numeric(number_prefix) == as.numeric(book)
-    }
-
-    if (!any(matches)) {
-      missing = c(missing, book)
-      next
-    }
-
-    resolved = c(
-      resolved,
-      directories[matches]
-    )
-  }
-
-  if (length(missing) > 0L) {
-    warning(
-      sprintf(
-        "Books not found: %s.",
-        paste(
-          sprintf('"%s"', missing),
-          collapse = ", "
-        )
-      ),
-      call. = FALSE
-    )
-  }
-
-  plan$books = unique(resolved)
-  plan
-}
-
-.process_book = function(book, formats, change_directory) {
-  book_name = basename(book)   
-  
-  if (change_directory) {
-      previous_directory = setwd(book)
-      on.exit(setwd(previous_directory), add = TRUE)
-  }
-
-  lapply(formats,.process_format, book=book_name)
-  
-}
-
-.process_format = function(format, book) {
-   message(sprintf("Rendering '%s' as %s...", book, toupper(format)))
-
-  render(profile = format)
-}
-
-.summarise_process = function(plan, results, started_at) {
-  elapsed = difftime(Sys.time(), started_at, units = "secs" )
+.report_build = function(plan) {
+  renders = length(plan$projects) *
+    length(plan$formats)
 
   message("")
-  message("Build completed")
-  message("---------------")
-  message("Books  : ", length(results))
-  message("Renders: ", sum(lengths(results)))
-  message("Formats: ", paste(plan$formats, collapse = ", "))
-  message("Elapsed: ", round(as.numeric(elapsed), 2), " seconds" )
+  message("IASI Quarto build")
+  message("-----------------")
+  message(sprintf(
+    "Status : %s",
+    if (isTRUE(plan$rendered)) {
+      "COMPLETED"
+    } else {
+      "INCOMPLETE"
+    }
+  ))
+  message(sprintf(
+    "Books  : %d",
+    length(plan$projects)
+  ))
+  message(sprintf(
+    "Renders: %d",
+    renders
+  ))
+  message(sprintf(
+    "Formats: %s",
+    paste(
+      plan$formats,
+      collapse = ", "
+    )
+  ))
+  message(sprintf(
+    "Elapsed: %.2f seconds",
+    plan$elapsed
+  ))
 
-  invisible(results)
+  invisible(plan)
 }

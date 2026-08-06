@@ -1,144 +1,413 @@
-test_that(".parse_command_line() uses default selections", {
-  plan = .parse_command_line()
+test_that("build returns NULL for a non-IASI directory", {
+  root = .copy_test_fixture(
+    "build",
+    "not-iasi"
+  )
 
-  expect_equal(plan$books, "all")
-  expect_equal(plan$formats, c("html", "pdf"))  
+  testthat::local_mocked_bindings(
+    .render = function(publication, format) {
+      fail("render must not be called")
+    },
+    .package = "iasi.quarto"
+  )
+
+  expect_null(
+    build(path = root)
+  )
 })
 
-test_that(".parse_command_line() accepts one book and one format", {
-  plan = .parse_command_line(
-    book = "book-one",
+test_that("build renders one publication in every format by default", {
+  root = .copy_test_fixture(
+    "build",
+    "single"
+  )
+
+  calls = new.env(
+    parent = emptyenv()
+  )
+
+  calls$books = character()
+  calls$formats = character()
+
+  testthat::local_mocked_bindings(
+    .render = function(publication, format) {
+      calls$books = c(
+        calls$books,
+        basename(publication$path)
+      )
+
+      calls$formats = c(
+        calls$formats,
+        format
+      )
+
+      publication$rendered = TRUE
+      publication$profiles = unique(c(
+        publication$profiles,
+        format
+      ))
+
+      publication
+    },
+    .package = "iasi.quarto"
+  )
+
+  plan = build(path = root)
+
+  expect_true(plan$rendered)
+
+  expect_identical(
+    calls$formats,
+    c(
+      "html",
+      "pdf"
+    )
+  )
+
+  expect_identical(
+    plan$formats,
+    c(
+      "html",
+      "pdf"
+    )
+  )
+
+  expect_identical(
+    plan$projects[[1L]]$publication$profiles,
+    c(
+      "html",
+      "pdf"
+    )
+  )
+})
+
+test_that("build accepts one selected format", {
+  root = .copy_test_fixture(
+    "build",
+    "single"
+  )
+
+  calls = new.env(
+    parent = emptyenv()
+  )
+
+  calls$formats = character()
+
+  testthat::local_mocked_bindings(
+    .render = function(publication, format) {
+      calls$formats = c(
+        calls$formats,
+        format
+      )
+
+      publication$rendered = TRUE
+      publication$profiles = unique(c(
+        publication$profiles,
+        format
+      ))
+
+      publication
+    },
+    .package = "iasi.quarto"
+  )
+
+  plan = build(
+    path = root,
     format = "html"
   )
 
-  expect_equal(plan$books, "book-one")
-  expect_equal(plan$formats, "html")
-})
-
-test_that(".parse_command_line() accepts multiple books and formats", {
-  plan = .parse_command_line(
-    book = c("book-one", "book-two"),
-    format = c("html", "pdf")
+  expect_identical(
+    calls$formats,
+    "html"
   )
 
-  expect_equal(plan$books, c("book-one", "book-two"))
-  expect_equal(plan$formats, c("html", "pdf"))
-})
-
-test_that(".parse_command_line() removes duplicates preserving order", {
-  plan = .parse_command_line(
-    book = c("book-one", "book-two", "book-one"),
-    format = c("pdf", "html", "pdf")
-  )
-
-  expect_equal(plan$books, c("book-one", "book-two"))
-  expect_equal(plan$formats, c("pdf", "html"))
-})
-
-test_that(".parse_command_line() accepts all as the only selection", {
-  plan = .parse_command_line(
-    book = "all",
-    format = "all"
-  )
-
-  expect_equal(plan$books, "all")
-  expect_equal(plan$formats,  c("html", "pdf"))  
-})
-
-test_that(".parse_command_line() rejects all combined with another book", {
-  expect_error(
-    .parse_command_line(
-      book = c("all", "book-one")
-    ),
-    '`book = "all"` cannot be combined with other values.',
-    fixed = TRUE
+  expect_identical(
+    plan$formats,
+    "html"
   )
 })
 
-test_that(".parse_command_line() rejects all combined with another format", {
-  expect_error(
-    .parse_command_line(
-      format = c("all", "html")
-    ),
-    '`format = "all"` cannot be combined with other values.',
-    fixed = TRUE
+test_that("build renders every publication in a multi", {
+  root = .copy_test_fixture(
+    "build",
+    "multi"
+  )
+
+  calls = new.env(
+    parent = emptyenv()
+  )
+
+  calls$books = character()
+  calls$formats = character()
+
+  testthat::local_mocked_bindings(
+    .render = function(publication, format) {
+      calls$books = c(
+        calls$books,
+        basename(publication$path)
+      )
+
+      calls$formats = c(
+        calls$formats,
+        format
+      )
+
+      publication$rendered = TRUE
+      publication$profiles = unique(c(
+        publication$profiles,
+        format
+      ))
+
+      publication
+    },
+    .package = "iasi.quarto"
+  )
+
+  plan = build(path = root)
+
+  expect_true(plan$rendered)
+
+  expect_identical(
+    calls$books,
+    c(
+      "01-user-guide",
+      "01-user-guide",
+      "02-dev-guide",
+      "02-dev-guide"
+    )
+  )
+
+  expect_identical(
+    calls$formats,
+    c(
+      "html",
+      "pdf",
+      "html",
+      "pdf"
+    )
   )
 })
 
-test_that(".parse_command_line() rejects empty book selections", {
-  expect_error(
-    .parse_command_line(book = character()),
-    "`book` must contain at least one non-empty value.",
-    fixed = TRUE
+test_that("build selects a book by name without its numeric prefix", {
+  root = .copy_test_fixture(
+    "build",
+    "multi"
   )
 
-  expect_error(
-    .parse_command_line(book = ""),
-    "`book` must contain at least one non-empty value.",
-    fixed = TRUE
+  calls = new.env(
+    parent = emptyenv()
   )
 
-  expect_error(
-    .parse_command_line(
-      book = c("book-one", "")
-    ),
-    "`book` must contain at least one non-empty value.",
-    fixed = TRUE
-  )
-})
+  calls$books = character()
 
-test_that(".parse_command_line() rejects empty format selections", {
-  expect_error(
-    .parse_command_line(format = character()),
-    "`format` must contain at least one non-empty value.",
-    fixed = TRUE
-  )
+  testthat::local_mocked_bindings(
+    .render = function(publication, format) {
+      calls$books = c(
+        calls$books,
+        basename(publication$path)
+      )
 
-  expect_error(
-    .parse_command_line(format = ""),
-    "`format` must contain at least one non-empty value.",
-    fixed = TRUE
+      publication$rendered = TRUE
+      publication$profiles = unique(c(
+        publication$profiles,
+        format
+      ))
+
+      publication
+    },
+    .package = "iasi.quarto"
   )
 
-  expect_error(
-    .parse_command_line(
-      format = c("html", "")
-    ),
-    "`format` must contain at least one non-empty value.",
-    fixed = TRUE
+  plan = build(
+    path = root,
+    book = "user-guide",
+    format = "html"
   )
-})
 
-test_that(".parse_command_line() rejects unknown formats", {
-  expect_error(
-    .parse_command_line(format = "epub"),
-    paste0(
-      '`format` contains invalid value: "epub". ',
-      'Valid values are: "all", "html", "pdf".'
-    ),
-    fixed = TRUE
+  expect_identical(
+    calls$books,
+    "01-user-guide"
+  )
+
+  expect_length(
+    plan$projects,
+    1L
   )
 })
 
-test_that(".parse_command_line() reports all unknown formats", {
-  expect_error(
-    .parse_command_line(
-      format = c("epub", "docx")
-    ),
-    paste0(
-      '`format` contains invalid values: "epub", "docx". ',
-      'Valid values are: "all", "html", "pdf".'
-    ),
-    fixed = TRUE
+test_that("build selects a book by numeric prefix", {
+  root = .copy_test_fixture(
+    "build",
+    "multi"
   )
-})
 
-test_that(".parse_command_line() does not restrict book names", {
-  plan = .parse_command_line(
-    book = "future-publication",
+  calls = new.env(
+    parent = emptyenv()
+  )
+
+  calls$books = character()
+
+  testthat::local_mocked_bindings(
+    .render = function(publication, format) {
+      calls$books = c(
+        calls$books,
+        basename(publication$path)
+      )
+
+      publication$rendered = TRUE
+      publication$profiles = unique(c(
+        publication$profiles,
+        format
+      ))
+
+      publication
+    },
+    .package = "iasi.quarto"
+  )
+
+  build(
+    path = root,
+    book = "2",
     format = "pdf"
   )
 
-  expect_equal(plan$books, "future-publication")
-  expect_equal(plan$formats, "pdf")
+  expect_identical(
+    calls$books,
+    "02-dev-guide"
+  )
+})
+
+test_that("build warns about missing books and builds resolved books", {
+  root = .copy_test_fixture(
+    "build",
+    "multi"
+  )
+
+  calls = new.env(
+    parent = emptyenv()
+  )
+
+  calls$books = character()
+
+  testthat::local_mocked_bindings(
+    .render = function(publication, format) {
+      calls$books = c(
+        calls$books,
+        basename(publication$path)
+      )
+
+      publication$rendered = TRUE
+      publication$profiles = unique(c(
+        publication$profiles,
+        format
+      ))
+
+      publication
+    },
+    .package = "iasi.quarto"
+  )
+
+  expect_warning(
+    build(
+      path = root,
+      book = c(
+        "user-guide",
+        "missing"
+      ),
+      format = "html"
+    ),
+    'Books not found: "missing".',
+    fixed = TRUE
+  )
+
+  expect_identical(
+    calls$books,
+    "01-user-guide"
+  )
+})
+
+test_that("build rejects unsupported formats before rendering", {
+  root = .copy_test_fixture(
+    "build",
+    "single"
+  )
+
+  testthat::local_mocked_bindings(
+    .render = function(publication, format) {
+      fail("render must not be called")
+    },
+    .package = "iasi.quarto"
+  )
+
+  expect_error(
+    build(
+      path = root,
+      format = "docx"
+    ),
+    'Unsupported format: "docx".',
+    fixed = TRUE
+  )
+})
+
+test_that("build ignores book selection for a current publication", {
+  root = .copy_test_fixture(
+    "build",
+    "single"
+  )
+
+  testthat::local_mocked_bindings(
+    .render = function(publication, format) {
+      publication$rendered = TRUE
+      publication$profiles = unique(c(
+        publication$profiles,
+        format
+      ))
+
+      publication
+    },
+    .package = "iasi.quarto"
+  )
+
+plan = NULL
+
+expect_warning(
+  {
+    plan = build(
+      path = root,
+      book = "something-else",
+      format = "html"
+    )
+  },
+  regexp = "The `book` selection will be ignored.",
+  fixed = TRUE
+)
+
+expect_length(
+  plan$projects,
+  1L
+)
+
+})
+
+test_that("build stops before rendering an invalid publication", {
+  root = .copy_test_fixture(
+    "build",
+    "invalid"
+  )
+
+  testthat::local_mocked_bindings(
+    .render = function(publication, format) {
+      fail("render must not be called")
+    },
+    .package = "iasi.quarto"
+  )
+
+  expect_error(
+    build(
+      path = root,
+      format = "html"
+    ),
+    "IASI Quarto check failed:",
+    fixed = TRUE
+  )
 })

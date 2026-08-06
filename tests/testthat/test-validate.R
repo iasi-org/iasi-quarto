@@ -1,79 +1,118 @@
-test_that("structured project validates", {
-  project <- validate(discover(fixture_path("structured")))
+.validation_fixture = function(...) {
+  testthat::test_path(
+    "fixtures",
+    "validate",
+    ...
+  )
+}
 
-  expect_s3_class(project, "iasi_quarto_project")
-  expect_true(project$valid)
-  expect_identical(project$type, "structured")
-  expect_length(project$errors, 0L)
+test_that("validate recognises the current IASI publication", {
+  root = .validation_fixture("publication")
+
+  expect_message(
+    validate(root),
+    "IASI Quarto publication found"
+  )
+
+  plan = suppressMessages(
+    validate(root)
+  )
+
+  expect_s3_class(
+    plan,
+    "iasi_quarto_plan"
+  )
+
+  expect_true(plan$current)
+
+  expect_identical(
+    plan$books,
+    normalizePath(
+      root,
+      winslash = "/",
+      mustWork = TRUE
+    )
+  )
 })
 
-test_that("regular project validates", {
-  project <- validate(discover(fixture_path("regular")))
+test_that("validate recognises an IASI multiproject recursively", {
+  root = .validation_fixture("multiproject")
 
-  expect_true(project$valid)
-  expect_identical(project$type, "regular")
-  expect_length(project$errors, 0L)
-})
+  first = file.path(
+    root,
+    "01-user-guide"
+  )
 
-test_that("direct project validates", {
-  project <- validate(discover(fixture_path("direct")))
+  second = file.path(
+    root,
+    "group",
+    "02-developer-guide"
+  )
 
-  expect_true(project$valid)
-  expect_identical(project$type, "direct")
-  expect_length(project$errors, 0L)
-})
+  expect_message(
+    validate(root),
+    "IASI Quarto multiproject found"
+  )
 
-test_that("incoherent publication is rejected", {
-  project <- validate(discover(fixture_path("incoherent-models")))
+  plan = suppressMessages(
+    validate(root)
+  )
 
-  expect_false(project$valid)
-  expect_identical(project$type, "incoherent")
-  expect_gt(length(project$errors), 0L)
-})
+  expect_s3_class(
+    plan,
+    "iasi_quarto_plan"
+  )
 
-test_that("conflicting indexes are rejected", {
-  project <- validate(discover(fixture_path("incoherent-same-folder")))
+  expect_false(plan$current)
 
-  expect_false(project$valid)
-  expect_true(
-    any(grepl(
-      "both index.qmd and 00-index.qmd",
-      project$errors,
-      fixed = TRUE
+  expect_identical(
+    plan$books,
+    sort(normalizePath(
+      c(first, second),
+      winslash = "/",
+      mustWork = TRUE
     ))
   )
 })
 
-test_that("folders without declaration are rejected", {
-  project <- validate(discover(fixture_path("incoherent-unclassified")))
+test_that("validate ignores incomplete or absent IASI signatures", {
+  root = .validation_fixture("not-iasi")
 
-  expect_false(project$valid)
-  expect_gt(length(project$errors), 0L)
-})
-
-test_that("direct folders generate warnings in a regular project", {
-  project <- validate(discover(fixture_path("regular-with-direct")))
-
-  expect_true(project$valid)
-  expect_identical(project$type, "regular")
-  expect_length(project$warnings, 1L)
-  expect_match(project$warnings, "processed directly", fixed = TRUE)
-})
-
-test_that("projects containing only direct folders remain valid", {
-  project <- validate(discover(fixture_path("direct-folders")))
-
-  expect_true(project$valid)
-  expect_identical(project$type, "direct")
-  expect_gt(length(project$warnings), 0L)
-})
-
-test_that("validate discovers current project", {
-  project <- withr::with_dir(
-    fixture_path("regular"),
-    validate()
+  paths = c(
+    file.path(root, "neither"),
+    file.path(root, "quarto-only"),
+    file.path(root, "iasi-only")
   )
 
-  expect_true(project$valid)
-  expect_identical(project$type, "regular")
+  for (path in paths) {
+    expect_message(
+      validate(path),
+      "Not an IASI Quarto project"
+    )
+
+    expect_null(
+      suppressMessages(
+        validate(path)
+      )
+    )
+  }
+})
+
+test_that("validate treats the current publication as the workspace", {
+  root = .validation_fixture("current")
+
+  plan = suppressMessages(
+    validate(root)
+  )
+
+  expect_true(plan$current)
+
+  expect_identical(
+    plan$books,
+    normalizePath(
+      root,
+      winslash = "/",
+      mustWork = TRUE
+    )
+  )
 })

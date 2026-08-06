@@ -1,42 +1,97 @@
-fixture_path <- function(...) {
-  testthat::test_path("fixtures", ...)
-}
+.copy_test_fixture = function(context, name) {
+  source = testthat::test_path(
+    "fixtures",
+    context,
+    name
+  )
 
-folder_strategy <- function(project, name) {
-  matches <- vapply(project$folders, function(x) identical(x$name, name), logical(1))
+  target = tempfile(
+    paste0(
+      "iasi-",
+      context,
+      "-",
+      name,
+      "-"
+    )
+  )
 
-  if (sum(matches) != 1L) {
-    stop(sprintf("Expected exactly one folder named '%s'.", name), call. = FALSE)
+  dir.create(
+    target,
+    recursive = TRUE
+  )
+
+  entries = list.files(
+    source,
+    all.files = TRUE,
+    full.names = TRUE,
+    recursive = TRUE,
+    include.dirs = TRUE,
+    no.. = TRUE
+  )
+
+  if (!length(entries)) {
+    return(
+      normalizePath(
+        target,
+        winslash = "/",
+        mustWork = TRUE
+      )
+    )
   }
 
-  project$folders[[which(matches)]]$strategy
-}
-
-copy_fixture_project <- function(name) {
-
-  source <- fixture_path(name)
-
-  temp_root <- withr::local_tempdir(
-    .local_envir = parent.frame()
+  relative = substring(
+    entries,
+    nchar(source) + 2L
   )
 
-  copied <- file.copy(
-    source,
-    temp_root,
-    recursive = TRUE,
-    copy.date = TRUE
+  directories = dir.exists(entries)
+
+  if (any(directories)) {
+    for (directory in file.path(
+      target,
+      relative[directories]
+    )) {
+      dir.create(
+        directory,
+        recursive = TRUE,
+        showWarnings = FALSE
+      )
+    }
+  }
+
+  files = entries[!directories]
+
+  if (length(files)) {
+    destinations = file.path(
+      target,
+      relative[!directories]
+    )
+
+    for (directory in unique(dirname(destinations))) {
+      dir.create(
+        directory,
+        recursive = TRUE,
+        showWarnings = FALSE
+      )
+    }
+
+    copied = file.copy(
+      files,
+      destinations,
+      overwrite = TRUE
+    )
+
+    if (!all(copied)) {
+      stop(
+        "Could not copy test fixture.",
+        call. = FALSE
+      )
+    }
+  }
+
+  normalizePath(
+    target,
+    winslash = "/",
+    mustWork = TRUE
   )
-
-  testthat::expect_true(copied)
-
-  project_root <- file.path(
-    temp_root,
-    basename(source)
-  )
-
-  testthat::expect_true(
-    dir.exists(project_root)
-  )
-
-  project_root
 }

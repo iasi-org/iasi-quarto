@@ -1,108 +1,138 @@
-.validate_project <- function(project) {
-  .assert_project(project)
+.validate_path = function(path = ".") {
+  root = .normalise_project_path(path)
 
-  errors <- character()
-  warnings <- character()
-
-  required_profiles = c("_quarto-html.yml", "_quarto-pdf.yml")
-
-  missing_profiles = required_profiles[!file.exists(file.path(project$path,required_profiles))]
-
-  if (length(missing_profiles) > 0L) {
-    errors = c(
-      errors,
-      sprintf(
-        "Missing Quarto profile files: %s.",
-        paste(
-          missing_profiles,
-          collapse = ", "
-        )
-      )
-    )
-  }  
-  if (identical(project$type, "incoherent")) {
-    errors <- c(
-      errors,
-      "The publication structure is incoherent."
-    )
+  if (.is_iasi_publication(root)) {
+    return(.new_validation_plan(path = root, current = TRUE, books = root))
   }
 
-  conflicting_folders <- Filter(
-    function(folder) {
-      isTRUE(folder$has_index) &&
-        isTRUE(folder$has_00_index) &&
-        !isTRUE(folder$marker)
-    },
-    project$folders
+  books = .find_iasi_publications(root)
+
+  if (!length(books)) return(NULL)
+
+  .new_validation_plan(
+    path = root,
+    current = FALSE,
+    books = books
   )
-
-  if (length(conflicting_folders)) {
-    folder_names <- vapply(
-      conflicting_folders,
-      `[[`,
-      character(1),
-      "name"
-    )
-
-    errors <- c(
-      errors,
-      sprintf(
-        "Folders containing both index.qmd and 00-index.qmd: %s.",
-        paste(folder_names, collapse = ", ")
-      )
-    )
-  }
-
-  unclassified_folders <- Filter(
-    function(folder) identical(folder$strategy, "unclassified"),
-    project$folders
-  )
-
-  if (length(unclassified_folders)) {
-    folder_names <- vapply(
-      unclassified_folders,
-      `[[`,
-      character(1),
-      "name"
-    )
-
-    errors <- c(
-      errors,
-      sprintf(
-        "Folders without an index declaration: %s.",
-        paste(folder_names, collapse = ", ")
-      )
-    )
-  }
-
-  direct_folders <- Filter(
-    function(folder) identical(folder$strategy, "direct"),
-    project$folders
-  )
-
-  if (length(direct_folders)) {
-    folder_names <- vapply(
-      direct_folders,
-      `[[`,
-      character(1),
-      "name"
-    )
-
-    warnings <- c(
-      warnings,
-      sprintf(
-        paste0(
-          "Folders processed directly because they contain ",
-          "index.txt or 00-index.txt: %s."
-        ),
-        paste(folder_names, collapse = ", ")
-      )
-    )
-  }
-
-  project$valid <- length(errors) == 0L
-  project$errors <- unique(errors)
-  project$warnings <- unique(warnings)
-
-  project
 }
+
+.is_iasi_publication = function(path) {
+  required_files = c(
+    "_quarto.yml",
+    "_quarto-html.yml",
+    "_quarto-pdf.yml",
+    "iasi.yml"
+  )
+
+  all(
+    file.exists(
+      file.path(
+        path,
+        required_files
+      )
+    )
+  )
+}
+
+.find_iasi_publications = function(path) {
+  files = list.files(
+    path = path,
+    recursive = TRUE,
+    full.names = TRUE,
+    all.files = FALSE,
+    include.dirs = FALSE
+  )
+
+  iasi_files = files[
+    basename(files) == "iasi.yml"
+  ]
+
+  if (!length(iasi_files)) {
+    return(character())
+  }
+
+  books = unique(dirname(iasi_files))
+
+  books = books[
+    vapply(
+      books,
+      .is_iasi_publication,
+      logical(1)
+    )
+  ]
+
+  if (!length(books)) {
+    return(character())
+  }
+
+sort(
+  normalizePath(
+    books,
+    winslash = "/",
+    mustWork = TRUE
+  )
+)  
+}
+
+.new_validation_plan = function(path, current, books) {
+  plan = list(
+    path = path,
+    current = current,
+    books = books
+  )
+
+  class(plan) = c(
+    "iasi_quarto_plan",
+    "list"
+  )
+
+  plan
+}
+
+.report_validation = function(path, plan) {
+  path = .normalise_project_path(path)
+
+  message("IASI Quarto validation")
+  message("----------------------")
+  message(sprintf("Path   : %s", path))
+
+  if (is.null(plan)) {
+    message("Status : Not an IASI Quarto project")
+    message(
+      "Reason : No folder contains both _quarto.yml and iasi.yml"
+    )
+
+    return(invisible(NULL))
+  }
+
+  if (isTRUE(plan$current)) {
+    message("Status : IASI Quarto publication found")
+
+    return(invisible(plan))
+  }
+
+  books = vapply(
+    plan$books,
+    .relative_path,
+    character(1),
+    root = plan$path
+  )
+
+  message("Status : IASI Quarto multiproject found")
+  message(sprintf("Books  : %d", length(books)))
+
+  for (book in books) {
+    message(sprintf("- %s", book))
+  }
+
+  invisible(plan)
+}
+
+.normalise_project_path = function(path) {
+  normalizePath(
+    path,
+    winslash = "/",
+    mustWork = TRUE
+  )
+}
+

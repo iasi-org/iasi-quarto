@@ -1,32 +1,69 @@
-#' Build Quarto publications
+#' Build IASI Quarto publications
 #'
-#' Builds one or more Quarto publications.
+#' Validates an IASI Quarto workspace and runs the complete build pipeline for
+#' one or more selected publications and output formats.
 #'
-#' `build()` automatically adapts to the current working directory.
+#' `build()` is the main entry point for generating IASI Quarto publications.
+#' It recognises the workspace, selects publications, discovers and checks
+#' their configuration, prepares derived artifacts, and invokes Quarto for
+#' every selected publication and format.
 #'
-#' When executed inside a Quarto project, the current project is built.
-#' When executed from the root of a multibook workspace, one or more books
-#' can be selected.
+#' @param book Publication or publications to build. A publication can be
+#'   selected by its complete directory name, its name without the numeric
+#'   prefix, or its numeric prefix. Use `"all"` or `NULL` to build every
+#'   publication. This argument is ignored when `path` is itself a publication.
+#' @param format Output format or formats. Use `"html"`, `"pdf"`, `"all"` or
+#'   `NULL`. `NULL` and `"all"` select every supported format.
+#' @param path IASI Quarto publication or multiproject directory.
 #'
-#' @param book Book or books to build.
-#' @param format Output format or formats.
-#'
-#' @return
-#' A build execution plan.
+#' @return Invisibly returns the completed `iasi_quarto_plan`. Returns `NULL`
+#'   when `path` does not appear to be an IASI Quarto workspace.
 #'
 #' @export
-build = function(book = NULL, format = NULL) {
+build = function(book = NULL, format = NULL, path = ".") {
+  started_at = Sys.time()
 
-   started_at = Sys.time()   
-   
-   plan = .parse_command_line(book = book, format = format)
-   plan = .resolve_current_project(plan)
-   plan = .resolve_books(plan)
-    
-   results = lapply(plan$books, .process_book,formats = plan$formats, change_directory = !plan$current)  
-   
-   .summarise_process(plan = plan, results = results, started_at = started_at)
+  formats = .resolve_build_formats(format)
 
-  invisible(results)   
+  plan = validate(path)
 
+  if (is.null(plan)) {
+    return(invisible(NULL))
+  }
+
+  plan = .select_build_books(
+    plan = plan,
+    book = book
+  )
+
+  plan = .discover(plan)
+  plan = .check(plan)
+  plan = .prepare(plan)
+
+  plan$projects = lapply(
+    plan$projects,
+    .render_build_project,
+    formats = formats
+  )
+
+  plan$rendered = all(vapply(
+    plan$projects,
+    function(project) {
+      isTRUE(project$publication$rendered)
+    },
+    logical(1)
+  ))
+
+  plan$formats = formats
+  plan$elapsed = as.numeric(
+    difftime(
+      Sys.time(),
+      started_at,
+      units = "secs"
+    )
+  )
+
+  .report_build(plan)
+
+  invisible(plan)
 }
