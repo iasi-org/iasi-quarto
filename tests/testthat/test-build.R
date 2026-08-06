@@ -368,20 +368,25 @@ test_that("build ignores book selection for a current publication", {
     .package = "iasi.quarto"
   )
 
-  expect_warning(
+plan = NULL
+
+expect_warning(
+  {
     plan = build(
       path = root,
       book = "something-else",
       format = "html"
-    ),
-    "The `book` selection will be ignored.",
-    fixed = TRUE
-  )
+    )
+  },
+  regexp = "The `book` selection will be ignored.",
+  fixed = TRUE
+)
 
-  expect_length(
-    plan$projects,
-    1L
-  )
+expect_length(
+  plan$projects,
+  1L
+)
+
 })
 
 test_that("build stops before rendering an invalid publication", {
