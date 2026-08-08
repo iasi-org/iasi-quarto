@@ -19,7 +19,7 @@ LazyData: true
 Depends:
     R (>= 4.2.0)
 Imports:
-    utils
+    utils, yaml
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 8.0.0
 Suggests: 
