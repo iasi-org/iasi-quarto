@@ -156,49 +156,68 @@
     }
   }
 
+  supported_strategies = .supported_publication_strategies(project)
+
   if (
     !is.character(project$strategy) ||
       length(project$strategy) != 1L ||
       is.na(project$strategy) ||
-      !project$strategy %in% c(
-        "regular",
-        "structured",
-        "direct"
-      )
+      !project$strategy %in% supported_strategies
   ) {
     errors = c(
       errors,
       sprintf(
-        "Invalid publication strategy: %s.",
-        .display_checked_value(project$strategy)
+        "Invalid publication strategy for project type '%s': %s. Supported strategies are: %s.",
+        .display_checked_value(project$type),
+        .display_checked_value(project$strategy),
+        paste(
+          supported_strategies,
+          collapse = ", "
+        )
       )
     )
   }
 
-  if (
-    !is.character(project$content_dir) ||
-      length(project$content_dir) != 1L ||
-      is.na(project$content_dir) ||
-      !nzchar(project$content_dir)
-  ) {
-    errors = c(
-      errors,
-      "Publication content-dir must be a non-empty string."
-    )
-  }
+  if (.uses_content_folders(project)) {
+    if (
+      !is.character(project$content_dir) ||
+        length(project$content_dir) != 1L ||
+        is.na(project$content_dir) ||
+        !nzchar(project$content_dir)
+    ) {
+      errors = c(
+        errors,
+        "Publication content-dir must be a non-empty string."
+      )
+    }
 
-  if (
-    !is.logical(project$numbered) ||
-      length(project$numbered) != 1L ||
-      is.na(project$numbered)
-  ) {
-    errors = c(
-      errors,
-      "Publication numbered must be TRUE or FALSE."
-    )
+    if (
+      !is.logical(project$numbered) ||
+        length(project$numbered) != 1L ||
+        is.na(project$numbered)
+    ) {
+      errors = c(
+        errors,
+        "Publication numbered must be TRUE or FALSE."
+      )
+    }
   }
 
   errors
+}
+
+
+.supported_publication_strategies = function(project) {
+  switch(
+    project$type,
+    website = "regular",
+    book = c(
+      "regular",
+      "structured",
+      "direct"
+    ),
+    character()
+  )
 }
 
 .check_project_structure = function(project) {
@@ -217,7 +236,8 @@
   }
 
   if (
-    is.character(project$content_dir) &&
+    .uses_content_folders(project) &&
+      is.character(project$content_dir) &&
       length(project$content_dir) == 1L &&
       !is.na(project$content_dir) &&
       nzchar(project$content_dir) &&
@@ -235,7 +255,15 @@
   errors
 }
 
+.uses_content_folders = function(project) {
+  identical(project$type, "book")
+}
+
 .discover_content_folders = function(project) {
+  if (!.uses_content_folders(project)) {
+    return(character())
+  }
+
   if (
     !is.character(project$content_dir) ||
       length(project$content_dir) != 1L ||

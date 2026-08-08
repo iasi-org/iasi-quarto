@@ -5,13 +5,12 @@
 #' `prepare()` only accepts a valid plan returned by [check()]. It does not
 #' discover, check or render publications.
 #'
-#' For `regular` publications, it generates one folder-level `index.qmd` per
-#' content folder and an `_book-structure.yml` file.
+#' For book publications, preparation depends on the IASI publication strategy.
+#' `regular`, `structured`, and `direct` books generate the derived book
+#' structure required by Quarto.
 #'
-#' For `structured` publications, it preserves the author-maintained
-#' folder-level `index.qmd` files and generates `_book-structure.yml`.
-#'
-#' For `direct` publications, it generates a flat `_book-structure.yml`.
+#' Website publications currently require no derived artifacts and preparation
+#' only creates the runtime publication descriptor used by the render stage.
 #'
 #' @param plan An `iasi_quarto_plan` returned by [check()].
 #'

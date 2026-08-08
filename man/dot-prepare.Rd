@@ -21,11 +21,10 @@ Generates the derived files required by every checked publication.
 \code{prepare()} only accepts a valid plan returned by \code{\link[=check]{check()}}. It does not
 discover, check or render publications.
 
-For \code{regular} publications, it generates one folder-level \code{index.qmd} per
-content folder and an \verb{_book-structure.yml} file.
+For book publications, preparation depends on the IASI publication strategy.
+\code{regular}, \code{structured}, and \code{direct} books generate the derived book
+structure required by Quarto.
 
-For \code{structured} publications, it preserves the author-maintained
-folder-level \code{index.qmd} files and generates \verb{_book-structure.yml}.
-
-For \code{direct} publications, it generates a flat \verb{_book-structure.yml}.
+Website publications currently require no derived artifacts and preparation
+only creates the runtime publication descriptor used by the render stage.
 }

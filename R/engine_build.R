@@ -49,6 +49,48 @@
   selection
 }
 
+.project_supported_formats = function(project) {
+  switch(
+    project$type,
+    website = "html",
+    book = .supported_formats,
+    stop(
+      sprintf(
+        "Unsupported Quarto project type '%s'.",
+        .display_checked_value(project$type)
+      ),
+      call. = FALSE
+    )
+  )
+}
+
+.resolve_project_build_formats = function(project, formats) {
+  supported = .project_supported_formats(project)
+  resolved = intersect(formats, supported)
+
+  if (!length(resolved)) {
+    stop(
+      sprintf(
+        "Project '%s' [%s] does not support requested format%s: %s. Supported formats are: %s.",
+        project$name,
+        project$type,
+        if (length(formats) == 1L) "" else "s",
+        paste(
+          sprintf('"%s"', formats),
+          collapse = ", "
+        ),
+        paste(
+          sprintf('"%s"', supported),
+          collapse = ", "
+        )
+      ),
+      call. = FALSE
+    )
+  }
+
+  resolved
+}
+
 .select_build_books = function(plan, book = NULL) {
   selection = .normalise_build_selection(
     value = book,
@@ -205,8 +247,12 @@
 
 .render_build_project = function(project, formats) {
   publication = project$publication
+  project_formats = .resolve_project_build_formats(
+    project = project,
+    formats = formats
+  )
 
-  for (format in formats) {
+  for (format in project_formats) {
     message(sprintf(
       "Rendering '%s' as %s...",
       project$name,
@@ -220,18 +266,24 @@
   }
 
   project$publication = publication
+  project$render_formats = project_formats
   project
 }
 
 .report_build = function(plan) {
-  renders = length(plan$projects) *
-    length(plan$formats)
+  renders = sum(vapply(
+    plan$projects,
+    function(project) {
+      length(project$render_formats)
+    },
+    integer(1)
+  ))
 
   message("")
   message("IASI Quarto build")
   message("-----------------")
   message(sprintf(
-    "Status : %s",
+    "Status  : %s",
     if (isTRUE(plan$rendered)) {
       "COMPLETED"
     } else {
@@ -239,22 +291,22 @@
     }
   ))
   message(sprintf(
-    "Books  : %d",
+    "Projects: %d",
     length(plan$projects)
   ))
   message(sprintf(
-    "Renders: %d",
+    "Renders : %d",
     renders
   ))
   message(sprintf(
-    "Formats: %s",
+    "Formats : %s",
     paste(
       plan$formats,
       collapse = ", "
     )
   ))
   message(sprintf(
-    "Elapsed: %.2f seconds",
+    "Elapsed : %.2f seconds",
     plan$elapsed
   ))
 

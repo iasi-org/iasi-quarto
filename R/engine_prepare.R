@@ -1,5 +1,8 @@
 .prepare_project = function(project) {
-  if (!identical(project$type, "book")) {
+  switch(
+    project$type,
+    book = .prepare_book_project(project),
+    website = .prepare_web_project(project),
     stop(
       sprintf(
         "Unsupported Quarto project type '%s'.",
@@ -7,9 +10,11 @@
       ),
       call. = FALSE
     )
-  }
+  )
+}
 
-  project = switch(
+.prepare_book_project = function(project) {
+  switch(
     project$strategy,
     regular = .prepare_regular_project(project),
     structured = .prepare_structured_project(project),
@@ -22,8 +27,6 @@
       call. = FALSE
     )
   )
-
-  project
 }
 
 .report_prepare = function(plan) {
@@ -54,8 +57,9 @@
     publication = project$publication
 
     message(sprintf(
-      "- %s [%s, %d artifacts]",
+      "- %s [%s, %s, %d artifacts]",
       project$name,
+      project$type,
       project$strategy,
       length(publication$artifacts)
     ))

@@ -11,7 +11,10 @@ print.iasi_quarto_publication = function(x, ...) {
   cat(sprintf("Path      : %s\n", x$path))
   cat(sprintf("Type      : %s\n", x$type))
   cat(sprintf("Strategy  : %s\n", x$strategy))
-  cat(sprintf("Chapters  : %d\n", length(x$chapters)))
+  if (identical(x$type, "book")) {
+    cat(sprintf("Chapters  : %d\n", length(x$chapters)))
+  }
+
   cat(sprintf("Artifacts : %d\n", length(x$artifacts)))
   cat(sprintf(
     "Changed   : %s\n",

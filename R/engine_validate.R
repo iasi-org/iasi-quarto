@@ -17,12 +17,23 @@
 }
 
 .is_iasi_publication = function(path) {
-  required_files = c(
-    "_quarto.yml",
-    "_quarto-html.yml",
-    "_quarto-pdf.yml",
-    "iasi.yml"
-  )
+  quarto_file = file.path(path, "_quarto.yml")
+  iasi_file = file.path(path, "iasi.yml")
+
+  if (!file.exists(quarto_file)) {
+    return(FALSE)
+  }
+
+  if (!file.exists(iasi_file)) {
+    return(FALSE)
+  }
+
+  type = .quarto_project_type(path)
+  required_files = .required_iasi_files(type)
+
+  if (!length(required_files)) {
+    return(FALSE)
+  }
 
   all(
     file.exists(
@@ -31,6 +42,38 @@
         required_files
       )
     )
+  )
+}
+
+.quarto_project_type = function(path) {
+  quarto = yaml::read_yaml(
+    file.path(path, "_quarto.yml")
+  )
+
+  type = quarto$project$type
+
+  if (is.null(type) || !length(type)) {
+    return("default")
+  }
+
+  as.character(type)
+}
+
+.required_iasi_files = function(type) {
+  switch(
+    type,
+    website = c(
+      "_quarto.yml",
+      "iasi.yml",
+      "_quarto-html.yml"
+    ),
+    book = c(
+      "_quarto.yml",
+      "iasi.yml",
+      "_quarto-html.yml",
+      "_quarto-pdf.yml"
+    ),
+    character()
   )
 }
 
@@ -65,13 +108,13 @@
     return(character())
   }
 
-sort(
-  normalizePath(
-    books,
-    winslash = "/",
-    mustWork = TRUE
+  sort(
+    normalizePath(
+      books,
+      winslash = "/",
+      mustWork = TRUE
+    )
   )
-)  
 }
 
 .new_validation_plan = function(path, current, books) {
@@ -94,19 +137,60 @@ sort(
 
   message("IASI Quarto validation")
   message("----------------------")
-  message(sprintf("Path   : %s", path))
+  message(sprintf("Path         : %s", path))
 
   if (is.null(plan)) {
-    message("Status : Not an IASI Quarto project")
-    message(
-      "Reason : No folder contains both _quarto.yml and iasi.yml"
-    )
+    quarto_file = file.path(path, "_quarto.yml")
+    iasi_file = file.path(path, "iasi.yml")
+
+    if (!file.exists(quarto_file)) {
+      message("Status       : Not a Quarto project")
+      message("Reason       : Missing _quarto.yml")
+
+      return(invisible(NULL))
+    }
+
+    if (!file.exists(iasi_file)) {
+      message("Status       : Not an IASI Quarto project")
+      message("Reason       : Missing iasi.yml")
+
+      return(invisible(NULL))
+    }
+
+    type = .quarto_project_type(path)
+    required_files = .required_iasi_files(type)
+
+    message(sprintf("Project type : %s", type))
+
+    if (!length(required_files)) {
+      message("Status       : Unsupported Quarto project type")
+      message("Supported    : website, book")
+
+      return(invisible(NULL))
+    }
+
+    missing_files = required_files[
+      !file.exists(file.path(path, required_files))
+    ]
+
+    message("Status       : Incomplete IASI Quarto project")
+
+    if (length(missing_files)) {
+      message("Missing      :")
+
+      for (file in missing_files) {
+        message(sprintf("  - %s", file))
+      }
+    }
 
     return(invisible(NULL))
   }
 
   if (isTRUE(plan$current)) {
-    message("Status : IASI Quarto publication found")
+    type = .quarto_project_type(plan$path)
+
+    message(sprintf("Project type : %s", type))
+    message("Status       : IASI Quarto publication found")
 
     return(invisible(plan))
   }
@@ -118,8 +202,8 @@ sort(
     root = plan$path
   )
 
-  message("Status : IASI Quarto multiproject found")
-  message(sprintf("Books  : %d", length(books)))
+  message("Status       : IASI Quarto multiproject found")
+  message(sprintf("Publications : %d", length(books)))
 
   for (book in books) {
     message(sprintf("- %s", book))
@@ -135,4 +219,3 @@ sort(
     mustWork = TRUE
   )
 }
-

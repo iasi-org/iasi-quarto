@@ -13,7 +13,8 @@
 #'   prefix, or its numeric prefix. Use `"all"` or `NULL` to build every
 #'   publication. This argument is ignored when `path` is itself a publication.
 #' @param format Output format or formats. Use `"html"`, `"pdf"`, `"all"` or
-#'   `NULL`. `NULL` and `"all"` select every supported format.
+#'   `NULL`. `NULL` and `"all"` select every format supported by each selected
+#'   publication type.
 #' @param path IASI Quarto publication or multiproject directory.
 #'
 #' @return Invisibly returns the completed `iasi_quarto_plan`. Returns `NULL`
@@ -54,7 +55,15 @@ build = function(book = NULL, format = NULL, path = ".") {
     logical(1)
   ))
 
-  plan$formats = formats
+  plan$formats = unique(unlist(
+    lapply(
+      plan$projects,
+      `[[`,
+      "render_formats"
+    ),
+    use.names = FALSE
+  ))
+
   plan$elapsed = as.numeric(
     difftime(
       Sys.time(),

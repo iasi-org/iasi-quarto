@@ -41,11 +41,20 @@
 
   quarto = .read_yaml_file(quarto_file)
   iasi_source = .read_yaml_file(iasi_file)
-  iasi = .normalise_iasi_config(iasi_source)
 
   quarto_project = .yaml_section(
     quarto,
     "project"
+  )
+
+  type = .yaml_field(
+    quarto_project,
+    "type"
+  )
+
+  iasi = .normalise_iasi_config(
+    source = iasi_source,
+    type = type
   )
 
   project = list(
@@ -53,10 +62,7 @@
     path = project_path,
     quarto_file = .normalise_project_path(quarto_file),
     iasi_file = .normalise_project_path(iasi_file),
-    type = .yaml_field(
-      quarto_project,
-      "type"
-    ),
+    type = type,
     strategy = iasi$strategy,
     content_dir = iasi$content_dir,
     content_path = .content_path(
@@ -100,11 +106,13 @@
   )
 }
 
-.normalise_iasi_config = function(source) {
+.normalise_iasi_config = function(source, type) {
   publication = .yaml_section(
     source,
     "publication"
   )
+
+  is_book = identical(type, "book")
 
   list(
     strategy = .value_or_default(
@@ -119,14 +127,14 @@
         publication,
         "content-dir"
       ),
-      "chapters"
+      if (is_book) "chapters" else NULL
     ),
     numbered = .value_or_default(
       .yaml_field(
         publication,
         "numbered"
       ),
-      TRUE
+      if (is_book) TRUE else NULL
     )
   )
 }
