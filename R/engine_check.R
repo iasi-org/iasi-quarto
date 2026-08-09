@@ -40,7 +40,17 @@
     .check_project_structure(project)
   )
 
+  root_documents = .discover_root_documents(project)
   folders = .discover_content_folders(project)
+
+  errors = c(
+    errors,
+    .check_top_level_numbering(
+      project = project,
+      root_documents = root_documents,
+      folders = folders
+    )
+  )
 
   folder_results = lapply(
     folders,
@@ -74,6 +84,7 @@
     )
   }
 
+  project$root_documents = root_documents
   project$folders = lapply(
     folder_results,
     `[[`,
@@ -257,6 +268,190 @@
 
 .uses_content_folders = function(project) {
   identical(project$type, "book")
+}
+
+.discover_root_documents = function(project) {
+  if (!identical(project$type, "book")) {
+    return(character())
+  }
+
+  documents = sort(list.files(
+    path = project$path,
+    pattern = "\\.qmd$",
+    full.names = TRUE,
+    recursive = FALSE,
+    ignore.case = TRUE
+  ))
+
+  documents = documents[
+    tolower(basename(documents)) != "index.qmd"
+  ]
+
+  if (isTRUE(project$numbered)) {
+    documents = documents[
+      grepl(
+        "^[0-9]+-.*\\.qmd$",
+        basename(documents),
+        ignore.case = TRUE
+      )
+    ]
+  }
+
+  if (!length(documents)) {
+    return(character())
+  }
+
+  unname(vapply(
+    documents,
+    .normalise_project_path,
+    character(1)
+  ))
+}
+
+.numbered_prefix = function(path) {
+  name = basename(path)
+  match = regexpr(
+    "^[0-9]+",
+    name
+  )
+
+  if (match[[1L]] == -1L) {
+    return(NA_integer_)
+  }
+
+  as.integer(
+    regmatches(
+      name,
+      match
+    )
+  )
+}
+
+.check_top_level_numbering = function(project,
+                                       root_documents,
+                                       folders) {
+  if (
+    !identical(project$type, "book") ||
+      !isTRUE(project$numbered)
+  ) {
+    return(character())
+  }
+
+  items = c(
+    root_documents,
+    folders
+  )
+
+  if (!length(items)) {
+    return(character())
+  }
+
+  prefixes = vapply(
+    items,
+    .numbered_prefix,
+    integer(1)
+  )
+
+  duplicated_prefixes = unique(
+    prefixes[duplicated(prefixes)]
+  )
+
+  if (!length(duplicated_prefixes)) {
+    return(character())
+  }
+
+  vapply(
+    duplicated_prefixes,
+    function(prefix) {
+      names = basename(
+        items[prefixes == prefix]
+      )
+
+      sprintf(
+        "Duplicate top-level numeric prefix %d: %s.",
+        prefix,
+        paste(
+          names,
+          collapse = ", "
+        )
+      )
+    },
+    character(1)
+  )
+}
+
+.book_top_level_items = function(project) {
+  root_documents = project$root_documents
+
+  if (is.null(root_documents)) {
+    root_documents = character()
+  }
+
+  document_items = lapply(
+    root_documents,
+    function(path) {
+      list(
+        kind = "document",
+        name = basename(path),
+        path = path
+      )
+    }
+  )
+
+  folder_items = lapply(
+    project$folders,
+    function(folder) {
+      list(
+        kind = "folder",
+        name = folder$name,
+        path = folder$path,
+        folder = folder
+      )
+    }
+  )
+
+  items = c(
+    document_items,
+    folder_items
+  )
+
+  if (!length(items)) {
+    return(items)
+  }
+
+  names = vapply(
+    items,
+    `[[`,
+    character(1),
+    "name"
+  )
+
+  if (isTRUE(project$numbered)) {
+    prefixes = vapply(
+      items,
+      function(item) {
+        .numbered_prefix(item$name)
+      },
+      integer(1)
+    )
+
+    return(
+      items[
+        order(
+          prefixes,
+          tolower(names),
+          names
+        )
+      ]
+    )
+  }
+
+  items[
+    order(
+      tolower(names),
+      names
+    )
+  ]
 }
 
 .discover_content_folders = function(project) {

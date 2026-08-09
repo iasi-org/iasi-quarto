@@ -25,8 +25,23 @@
 
 .structured_chapters = function(project) {
   chapters = "index.qmd"
+  items = .book_top_level_items(project)
 
-  for (folder in project$folders) {
+  for (item in items) {
+    if (identical(item$kind, "document")) {
+      chapters = c(
+        chapters,
+        .relative_path(
+          item$path,
+          project$path
+        )
+      )
+
+      next
+    }
+
+    folder = item$folder
+
     chapters = c(
       chapters,
       .relative_path(
@@ -53,7 +68,25 @@
     '    - "index.qmd"'
   )
 
-  for (folder in project$folders) {
+  items = .book_top_level_items(project)
+
+  for (item in items) {
+    if (identical(item$kind, "document")) {
+      lines = c(
+        lines,
+        sprintf(
+          '    - "%s"',
+          .relative_path(
+            item$path,
+            project$path
+          )
+        )
+      )
+
+      next
+    }
+
+    folder = item$folder
     part = .relative_path(
       file.path(
         folder$path,

@@ -18,12 +18,40 @@
     "changed"
   )
 
+  names(results) = vapply(
+    project$folders,
+    `[[`,
+    character(1),
+    "path"
+  )
+
+  items = .book_top_level_items(project)
+
+  ordered_chapters = unlist(
+    lapply(
+      items,
+      function(item) {
+        if (identical(item$kind, "document")) {
+          return(
+            .relative_path(
+              item$path,
+              project$path
+            )
+          )
+        }
+
+        .relative_path(
+          results[[item$path]]$path,
+          project$path
+        )
+      }
+    ),
+    use.names = FALSE
+  )
+
   chapters = c(
     "index.qmd",
-    .relative_paths(
-      folder_indexes,
-      project$path
-    )
+    ordered_chapters
   )
 
   structure_path = file.path(

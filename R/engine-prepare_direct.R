@@ -1,9 +1,16 @@
 .prepare_direct_project = function(project) {
+  items = .book_top_level_items(project)
+
   documents = unlist(
     lapply(
-      project$folders,
-      `[[`,
-      "documents"
+      items,
+      function(item) {
+        if (identical(item$kind, "document")) {
+          return(item$path)
+        }
+
+        item$folder$documents
+      }
     ),
     use.names = FALSE
   )
