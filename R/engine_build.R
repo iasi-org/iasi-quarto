@@ -50,10 +50,18 @@
 }
 
 .project_supported_formats = function(project) {
-  candidates = switch(
-    project$type,
-    website = "html",
-    book = .supported_formats,
+  types = project$format_types
+
+  if (is.null(types)) {
+    types = .publication_format_types(
+      type = project$type,
+      html_landing_page = isTRUE(project$html_landing_page)
+    )
+  }
+
+  candidates = names(types)
+
+  if (!length(candidates)) {
     stop(
       sprintf(
         "Unsupported Quarto project type '%s'.",
@@ -61,7 +69,7 @@
       ),
       call. = FALSE
     )
-  )
+  }
 
   profile_files = file.path(
     project$path,
@@ -271,7 +279,11 @@
 
     publication = .render(
       publication = publication,
-      format = format
+      format = format,
+      type = .project_format_type(
+        project = project,
+        format = format
+      )
     )
   }
 

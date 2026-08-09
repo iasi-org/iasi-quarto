@@ -145,7 +145,8 @@
     allowed_keys = c(
       "strategy",
       "content-dir",
-      "numbered"
+      "numbered",
+      "html"
     )
 
     unknown_keys = setdiff(
@@ -165,6 +166,61 @@
         )
       )
     }
+  }
+
+  html = if (is.list(publication)) {
+    publication[["html"]]
+  } else {
+    NULL
+  }
+
+  if (!is.null(html) && !is.list(html)) {
+    errors = c(
+      errors,
+      "The 'publication.html' section in _iasi.yml must be a mapping."
+    )
+  }
+
+  if (is.list(html)) {
+    allowed_html_keys = "landing-page"
+    unknown_html_keys = setdiff(
+      names(html),
+      allowed_html_keys
+    )
+
+    if (length(unknown_html_keys)) {
+      errors = c(
+        errors,
+        sprintf(
+          "Unknown publication.html keys in _iasi.yml: %s.",
+          paste(
+            unknown_html_keys,
+            collapse = ", "
+          )
+        )
+      )
+    }
+  }
+
+  if (
+    !is.logical(project$html_landing_page) ||
+      length(project$html_landing_page) != 1L ||
+      is.na(project$html_landing_page)
+  ) {
+    errors = c(
+      errors,
+      "Publication html.landing-page must be TRUE or FALSE."
+    )
+  }
+
+  if (
+    isTRUE(project$html_landing_page) &&
+      !identical(project$type, "book")
+  ) {
+    errors = c(
+      errors,
+      "Publication html.landing-page is only supported for book projects."
+    )
   }
 
   supported_strategies = .supported_publication_strategies(project)

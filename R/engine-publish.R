@@ -76,9 +76,15 @@
 }
 
 .discover_publish_output = function(project, format) {
+  type = .project_format_type(
+    project = project,
+    format = format
+  )
+
   inspection = .inspect_quarto_profile(
     path = project$path,
-    profile = format
+    profile = format,
+    type = type
   )
 
   config = .yaml_section(
@@ -97,7 +103,7 @@
   )
 
   if (is.null(output_dir)) {
-    output_dir = .default_quarto_output_dir(project$type)
+    output_dir = .default_quarto_output_dir(type)
   }
 
   if (
@@ -123,6 +129,7 @@
 
   result = list(
     format = format,
+    type = type,
     output_dir = output_dir,
     path = output_path,
     config = config
@@ -139,13 +146,33 @@
   result
 }
 
-.inspect_quarto_profile = function(path, profile) {
+.inspect_quarto_profile = function(path, profile, type = NULL) {
   previous_directory = setwd(path)
 
   on.exit(
     setwd(previous_directory),
     add = TRUE
   )
+
+  active_profile = profile
+
+  if (!is.null(type)) {
+    runtime_profile = .create_quarto_type_profile(
+      path = path,
+      type = type
+    )
+
+    on.exit(
+      unlink(runtime_profile$file),
+      add = TRUE
+    )
+
+    active_profile = paste(
+      runtime_profile$name,
+      profile,
+      sep = ","
+    )
+  }
 
   error_file = tempfile(
     pattern = "iasi-quarto-inspect-",
@@ -162,7 +189,7 @@
     args = c(
       "inspect",
       "--profile",
-      profile
+      active_profile
     ),
     stdout = TRUE,
     stderr = error_file
