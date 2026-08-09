@@ -36,7 +36,7 @@
 
   iasi_file = file.path(
     project_path,
-    "iasi.yml"
+    "_iasi.yml"
   )
 
   quarto = .read_yaml_file(quarto_file)

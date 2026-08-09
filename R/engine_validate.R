@@ -18,7 +18,7 @@
 
 .is_iasi_publication = function(path) {
   quarto_file = file.path(path, "_quarto.yml")
-  iasi_file = file.path(path, "iasi.yml")
+  iasi_file = file.path(path, "_iasi.yml")
 
   if (!file.exists(quarto_file)) {
     return(FALSE)
@@ -71,11 +71,11 @@
     type,
     website = c(
       "_quarto.yml",
-      "iasi.yml"
+      "_iasi.yml"
     ),
     book = c(
       "_quarto.yml",
-      "iasi.yml"
+      "_iasi.yml"
     ),
     character()
   )
@@ -125,7 +125,7 @@
   )
 
   iasi_files = files[
-    basename(files) == "iasi.yml"
+    basename(files) == "_iasi.yml"
   ]
 
   if (!length(iasi_files)) {
@@ -179,7 +179,7 @@
 
   if (is.null(plan)) {
     quarto_file = file.path(path, "_quarto.yml")
-    iasi_file = file.path(path, "iasi.yml")
+    iasi_file = file.path(path, "_iasi.yml")
 
     if (!file.exists(quarto_file)) {
       message("Status       : Not a Quarto project")
@@ -190,7 +190,7 @@
 
     if (!file.exists(iasi_file)) {
       message("Status       : Not an IASI Quarto project")
-      message("Reason       : Missing iasi.yml")
+      message("Reason       : Missing _iasi.yml")
 
       return(invisible(NULL))
     }

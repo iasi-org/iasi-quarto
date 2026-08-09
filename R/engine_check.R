@@ -137,7 +137,7 @@
 
   if (!is.null(publication) && !is.list(publication)) {
     return(
-      "The 'publication' section in iasi.yml must be a mapping."
+      "The 'publication' section in _iasi.yml must be a mapping."
     )
   }
 
@@ -157,7 +157,7 @@
       errors = c(
         errors,
         sprintf(
-          "Unknown publication keys in iasi.yml: %s.",
+          "Unknown publication keys in _iasi.yml: %s.",
           paste(
             unknown_keys,
             collapse = ", "

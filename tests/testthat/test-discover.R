@@ -54,7 +54,7 @@ test_that("discover reads an explicitly configured publication", {
   )
 })
 
-test_that("discover applies defaults to an empty iasi.yml", {
+test_that("discover applies defaults to an empty _iasi.yml", {
   root = testthat::test_path(
     "fixtures",
     "discover",
@@ -106,7 +106,7 @@ test_that("discover applies defaults only to missing keys", {
   )
 })
 
-test_that("discover fails when iasi.yml is malformed", {
+test_that("discover fails when _iasi.yml is malformed", {
   root = testthat::test_path(
     "fixtures",
     "discover",
@@ -124,7 +124,7 @@ test_that("discover fails when iasi.yml is malformed", {
     discover(
       validate(root)
     ),
-    "iasi.yml",
+    "_iasi.yml",
     fixed = TRUE
   )
 })

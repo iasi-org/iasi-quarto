@@ -1,0 +1,4 @@
+publication:
+  strategy: direct
+  content-dir: chapters
+  numbered: true

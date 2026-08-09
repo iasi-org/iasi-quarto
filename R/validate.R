@@ -4,10 +4,10 @@
 #' multiproject containing one or more IASI Quarto publications.
 #'
 #' A directory is recognised as an IASI Quarto publication only when it
-#' contains both `_quarto.yml` and `iasi.yml`. If the directory itself is not
+#' contains both `_quarto.yml` and `_iasi.yml`. If the directory itself is not
 #' a publication, `validate()` searches its subdirectories recursively.
 #'
-#' This function only recognises the workspace. It does not read `iasi.yml`,
+#' This function only recognises the workspace. It does not read `_iasi.yml`,
 #' inspect the publication structure, or validate its contents.
 #'
 #' @param path Directory to inspect.

@@ -18,7 +18,7 @@
     "publish"
   )
 
-  .check_publish_sources(
+  outputs = .check_publish_sources(
     project = project,
     outputs = outputs,
     publish_path = publish_path
@@ -353,13 +353,19 @@
     mustWork = FALSE
   )
 
-  for (output in outputs) {
-    if (!dir.exists(output$path)) {
-      stop(
+  available = list()
+
+  for (name in names(outputs)) {
+    output = outputs[[name]]
+
+    exists = dir.exists(output$path)
+
+    if (!exists) {
+      warning(
         sprintf(
           paste0(
             "Output for profile '%s' does not exist for project '%s': %s. ",
-            "Build that format before publishing."
+            "That format will not be published."
           ),
           output$format,
           project$name,
@@ -367,6 +373,8 @@
         ),
         call. = FALSE
       )
+
+      next
     }
 
     output_path = normalizePath(
@@ -411,47 +419,66 @@
         call. = FALSE
       )
     }
-  }
 
-  if ("html" %in% names(outputs)) {
-    index = file.path(
-      outputs$html$path,
-      "index.html"
-    )
+    if (identical(output$format, "html")) {
+      index = file.path(
+        output$path,
+        "index.html"
+      )
 
-    if (!file.exists(index)) {
-      stop(
+      if (!file.exists(index)) {
+        warning(
+          sprintf(
+            paste0(
+              "HTML output for project '%s' does not contain index.html: %s. ",
+              "HTML will not be published."
+            ),
+            project$name,
+            output$path
+          ),
+          call. = FALSE
+        )
+
+        next
+      }
+    }
+
+    if (
+      identical(output$format, "pdf") &&
+        !file.exists(output$file)
+    ) {
+      warning(
         sprintf(
           paste0(
-            "HTML output for project '%s' does not contain index.html: %s. ",
-            "Build HTML before publishing."
+            "PDF output for project '%s' was not found in %s. ",
+            "PDF will not be published."
           ),
           project$name,
-          outputs$html$path
+          output$path
         ),
         call. = FALSE
       )
+
+      next
     }
+
+    available[[name]] = output
   }
 
-  if (
-    "pdf" %in% names(outputs) &&
-      !file.exists(outputs$pdf$file)
-  ) {
+  if (!length(available)) {
     stop(
       sprintf(
         paste0(
-          "PDF output for project '%s' was not found in %s. ",
-          "Build PDF before publishing."
+          "No publishable artifacts were found for project '%s'. ",
+          "Build at least one format before publishing."
         ),
-        project$name,
-        outputs$pdf$path
+        project$name
       ),
       call. = FALSE
     )
   }
 
-  invisible(TRUE)
+  available
 }
 
 .copy_directory_contents = function(from, to) {
