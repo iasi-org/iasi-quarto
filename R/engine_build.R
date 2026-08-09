@@ -50,7 +50,7 @@
 }
 
 .project_supported_formats = function(project) {
-  switch(
+  candidates = switch(
     project$type,
     website = "html",
     book = .supported_formats,
@@ -62,6 +62,16 @@
       call. = FALSE
     )
   )
+
+  profile_files = file.path(
+    project$path,
+    sprintf(
+      "_quarto-%s.yml",
+      candidates
+    )
+  )
+
+  candidates[file.exists(profile_files)]
 }
 
 .resolve_project_build_formats = function(project, formats) {

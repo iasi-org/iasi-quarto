@@ -35,13 +35,20 @@
     return(FALSE)
   }
 
-  all(
+  if (!all(
     file.exists(
       file.path(
         path,
         required_files
       )
     )
+  )) {
+    return(FALSE)
+  }
+
+  .has_required_iasi_profiles(
+    path = path,
+    type = type
   )
 }
 
@@ -64,16 +71,47 @@
     type,
     website = c(
       "_quarto.yml",
-      "iasi.yml",
-      "_quarto-html.yml"
+      "iasi.yml"
     ),
     book = c(
       "_quarto.yml",
-      "iasi.yml",
+      "iasi.yml"
+    ),
+    character()
+  )
+}
+
+.iasi_profile_files = function(type) {
+  switch(
+    type,
+    website = "_quarto-html.yml",
+    book = c(
       "_quarto-html.yml",
       "_quarto-pdf.yml"
     ),
     character()
+  )
+}
+
+.has_required_iasi_profiles = function(path, type) {
+  profile_files = .iasi_profile_files(type)
+
+  if (!length(profile_files)) {
+    return(FALSE)
+  }
+
+  available = file.exists(
+    file.path(
+      path,
+      profile_files
+    )
+  )
+
+  switch(
+    type,
+    website = all(available),
+    book = any(available),
+    FALSE
   )
 }
 
@@ -173,6 +211,11 @@
       !file.exists(file.path(path, required_files))
     ]
 
+    profile_files = .iasi_profile_files(type)
+    available_profiles = profile_files[
+      file.exists(file.path(path, profile_files))
+    ]
+
     message("Status       : Incomplete IASI Quarto project")
 
     if (length(missing_files)) {
@@ -181,6 +224,17 @@
       for (file in missing_files) {
         message(sprintf("  - %s", file))
       }
+    }
+
+    if (!length(available_profiles)) {
+      message("Output       : Missing Quarto output profile")
+      message(sprintf(
+        "Expected     : %s",
+        paste(
+          profile_files,
+          collapse = " or "
+        )
+      ))
     }
 
     return(invisible(NULL))
