@@ -69,6 +69,9 @@
     }
   }
 
+  writeLines(format(Sys.time(), tz = "UTC",format = "%Y-%m-%dT%H:%M:%OS6Z"),
+             file.path(publish_path, ".publish"), useBytes = TRUE)
+
   project$publish_path = .normalise_project_path(publish_path)
   project$publish_outputs = outputs
   project$published = TRUE
