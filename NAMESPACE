@@ -3,5 +3,6 @@
 S3method(print,iasi_quarto_project)
 S3method(print,iasi_quarto_publication)
 export(build)
+export(deploy)
 export(publish)
 export(validate)
