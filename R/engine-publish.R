@@ -178,8 +178,8 @@
   }
 
   landing = which(prefixes == 0L)
-  if (length(landing) != 1L) {
-    stop("A multiproject repository must contain exactly one 00-* landing project.", call. = FALSE)
+  if (length(landing) > 1L) {
+    stop("A multiproject repository cannot contain more than one 00-* landing project.", call. = FALSE)
   }
 
   prepared = Map(
@@ -245,6 +245,14 @@
       project
     }
   )
+
+  if (!length(landing)) {
+    .write_multiproject_landing(
+      path = publish_path,
+      projects = plan$projects,
+      slugs = slugs
+    )
+  }
 
   writeLines(
     format(Sys.time(), tz = "UTC", format = "%Y-%m-%dT%H:%M:%OS6Z"),
