@@ -41,10 +41,21 @@ publish = function(book = NULL, path = ".") {
 
   .assert_checked_plan(plan)
 
-  plan$projects = lapply(
-    plan$projects,
-    .publish_project
+  numbered_project = isTRUE(plan$current) && grepl(
+    "^[0-9]+-",
+    basename(plan$path)
   )
+
+  if (numbered_project) {
+    plan = .publish_numbered_project(plan)
+  } else if (isTRUE(plan$current)) {
+    plan$projects = lapply(
+      plan$projects,
+      .publish_project
+    )
+  } else {
+    plan = .publish_multiproject(plan)
+  }
 
   plan$published = all(vapply(
     plan$projects,

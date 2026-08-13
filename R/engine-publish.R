@@ -78,6 +78,227 @@
   project
 }
 
+.publish_numbered_project = function(plan) {
+  project = plan$projects[[1L]]
+  repository_path = dirname(plan$path)
+  publish_path = file.path(repository_path, "publish")
+  prefix = .numbered_prefix(project$path)
+  slug = sub("^[0-9]+-", "", basename(project$path))
+
+  if (identical(prefix, 0L)) {
+    project = .publish_landing_project(project, publish_path)
+  } else {
+    project = .publish_project_to(
+      project = project,
+      destination = file.path(publish_path, slug)
+    )
+  }
+
+  file.create(file.path(publish_path, ".nojekyll"))
+  writeLines(
+    format(Sys.time(), tz = "UTC", format = "%Y-%m-%dT%H:%M:%OS6Z"),
+    file.path(publish_path, ".publish"),
+    useBytes = TRUE
+  )
+
+  plan$projects = list(project)
+  plan$publish_path = .normalise_project_path(publish_path)
+  plan
+}
+
+.publish_landing_project = function(project, publish_path) {
+  formats = .project_supported_formats(project)
+  outputs = lapply(
+    formats,
+    function(format) .discover_publish_output(project, format)
+  )
+  names(outputs) = formats
+  outputs = .check_publish_sources(project, outputs, publish_path)
+
+  dir.create(publish_path, recursive = TRUE, showWarnings = FALSE)
+
+  if ("html" %in% names(outputs)) {
+    .copy_directory_contents(outputs$html$path, publish_path)
+  }
+
+  project$publish_path = .normalise_project_path(publish_path)
+  project$publish_outputs = outputs
+  project$published = TRUE
+  project
+}
+
+.publish_project_to = function(project, destination) {
+  formats = .project_supported_formats(project)
+  outputs = lapply(
+    formats,
+    function(format) .discover_publish_output(project, format)
+  )
+  names(outputs) = formats
+  outputs = .check_publish_sources(project, outputs, destination)
+
+  if (dir.exists(destination)) {
+    unlink(destination, recursive = TRUE, force = TRUE)
+  }
+  dir.create(destination, recursive = TRUE, showWarnings = FALSE)
+
+  if ("html" %in% names(outputs)) {
+    .copy_directory_contents(outputs$html$path, destination)
+  }
+
+  if ("pdf" %in% names(outputs)) {
+    copied = file.copy(
+      outputs$pdf$file,
+      file.path(destination, basename(outputs$pdf$file)),
+      overwrite = TRUE,
+      copy.mode = TRUE,
+      copy.date = TRUE
+    )
+    if (!isTRUE(copied)) {
+      stop(sprintf("Could not copy publication PDF for '%s'.", project$name), call. = FALSE)
+    }
+  }
+
+  project$publish_path = .normalise_project_path(destination)
+  project$publish_outputs = outputs
+  project$published = TRUE
+  project
+}
+
+.publish_multiproject = function(plan) {
+  publish_path = file.path(plan$path, "publish")
+  prefixes = vapply(plan$projects, function(project) .numbered_prefix(project$path), integer(1))
+  slugs = vapply(
+    plan$projects,
+    function(project) sub("^[0-9]+-", "", basename(project$path)),
+    character(1)
+  )
+
+  if (anyDuplicated(slugs)) {
+    stop("Publication names are not unique after removing numeric prefixes.", call. = FALSE)
+  }
+
+  landing = which(prefixes == 0L)
+  if (length(landing) != 1L) {
+    stop("A multiproject repository must contain exactly one 00-* landing project.", call. = FALSE)
+  }
+
+  prepared = Map(
+    function(project, slug) {
+      formats = .project_supported_formats(project)
+      outputs = lapply(
+        formats,
+        function(format) .discover_publish_output(project, format)
+      )
+      names(outputs) = formats
+
+      destination = if (identical(.numbered_prefix(project$path), 0L)) {
+        publish_path
+      } else {
+        file.path(publish_path, slug)
+      }
+      outputs = .check_publish_sources(project, outputs, destination)
+
+      list(
+        project = project,
+        slug = slug,
+        destination = destination,
+        outputs = outputs
+      )
+    },
+    plan$projects,
+    slugs
+  )
+
+  if (dir.exists(publish_path)) {
+    unlink(publish_path, recursive = TRUE, force = TRUE)
+  }
+  dir.create(publish_path, recursive = TRUE, showWarnings = FALSE)
+
+  prepared = prepared[c(landing, setdiff(seq_along(prepared), landing))]
+
+  plan$projects = lapply(
+    prepared,
+    function(item) {
+      project = item$project
+      dir.create(item$destination, recursive = TRUE, showWarnings = FALSE)
+
+      if ("html" %in% names(item$outputs)) {
+        .copy_directory_contents(item$outputs$html$path, item$destination)
+      }
+
+      if ("pdf" %in% names(item$outputs)) {
+        copied = file.copy(
+          item$outputs$pdf$file,
+          file.path(item$destination, basename(item$outputs$pdf$file)),
+          overwrite = TRUE,
+          copy.mode = TRUE,
+          copy.date = TRUE
+        )
+        if (!isTRUE(copied)) {
+          stop(sprintf("Could not copy publication PDF for '%s'.", project$name), call. = FALSE)
+        }
+      }
+
+      project$publish_path = .normalise_project_path(item$destination)
+      project$publish_outputs = item$outputs
+      project$published = TRUE
+      project
+    }
+  )
+
+  writeLines(
+    format(Sys.time(), tz = "UTC", format = "%Y-%m-%dT%H:%M:%OS6Z"),
+    file.path(publish_path, ".publish"),
+    useBytes = TRUE
+  )
+  file.create(file.path(publish_path, ".nojekyll"))
+
+  plan$publish_path = .normalise_project_path(publish_path)
+  plan
+}
+
+.write_multiproject_landing = function(path, projects, slugs) {
+  escape_html = function(value) {
+    value = gsub("&", "&amp;", value, fixed = TRUE)
+    value = gsub("<", "&lt;", value, fixed = TRUE)
+    value = gsub(">", "&gt;", value, fixed = TRUE)
+    gsub('"', "&quot;", value, fixed = TRUE)
+  }
+
+  items = Map(
+    function(project, slug) sprintf(
+      '      <li><a href="%s/">%s</a></li>',
+      escape_html(slug),
+      escape_html(project$name)
+    ),
+    projects,
+    slugs
+  )
+
+  writeLines(
+    c(
+      "<!doctype html>",
+      '<html lang="en">',
+      "<head>",
+      '  <meta charset="utf-8">',
+      '  <meta name="viewport" content="width=device-width, initial-scale=1">',
+      "  <title>IASI Documentation</title>",
+      "</head>",
+      "<body>",
+      "  <main>",
+      "    <h1>IASI Documentation</h1>",
+      "    <ul>",
+      unlist(items, use.names = FALSE),
+      "    </ul>",
+      "  </main>",
+      "</body>",
+      "</html>"
+    ),
+    file.path(path, "index.html"),
+    useBytes = TRUE
+  )
+}
+
 .discover_publish_output = function(project, format) {
   type = .project_format_type(
     project = project,
@@ -547,6 +768,14 @@
 }
 
 .report_publish = function(plan) {
+  report_root = if (
+    isTRUE(plan$current) && grepl("^[0-9]+-", basename(plan$path))
+  ) {
+    dirname(plan$path)
+  } else {
+    plan$path
+  }
+
   message("IASI Quarto publish")
   message("-------------------")
   message(sprintf(
@@ -574,7 +803,7 @@
       ),
       .relative_path(
         project$publish_path,
-        project$path
+        report_root
       )
     ))
 
