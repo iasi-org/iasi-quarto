@@ -87,7 +87,13 @@
     website = "_quarto-html.yml",
     book = c(
       "_quarto-html.yml",
-      "_quarto-pdf.yml"
+      "_quarto-pdf.yml",
+      "_quarto-typst.yml",
+      "_quarto-epub.yml",
+      "_quarto-doc.yml",
+      "_quarto-odt.yml",
+      "_quarto-git.yml",
+      "_quarto-gfm.yml"
     ),
     character()
   )
@@ -124,13 +130,11 @@
     include.dirs = FALSE
   )
 
-  iasi_files = files[
-    basename(files) == "_iasi.yml"
-  ]
+  iasi_files = files[basename(files) == "_iasi.yml"]
+  relative = vapply(iasi_files, .relative_path, character(1), root = path)
+  iasi_files = iasi_files[!grepl("(^|/)tests(/|$)", relative)]
 
-  if (!length(iasi_files)) {
-    return(character())
-  }
+  if (!length(iasi_files)) return(character())
 
   books = unique(dirname(iasi_files))
 
@@ -154,6 +158,7 @@
     )
   )
 }
+
 
 .new_validation_plan = function(path, current, books) {
   plan = list(

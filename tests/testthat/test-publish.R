@@ -1,48 +1,87 @@
-test_that("multiproject publish creates a landing page when 00-* is absent", {
-  root = tempfile("iasi-publish-multiproject-")
-  dir.create(root, recursive = TRUE)
+test_that("publish copies the output tree without flattening it", {
+  root = tempfile("iasi-publish-")
+  source = file.path(root, "_outputs")
+  destination = file.path(root, "publish")
+  dir.create(file.path(source, "html"), recursive = TRUE)
+  dir.create(file.path(source, "pdf"), recursive = TRUE)
+  dir.create(file.path(source, "typst"), recursive = TRUE)
+  dir.create(file.path(source, "doc"), recursive = TRUE)
+  dir.create(file.path(source, "git"), recursive = TRUE)
+  writeLines('<div class="iasi-export"></div>', file.path(source, "html", "index.html"))
+  writeLines("pdf", file.path(source, "pdf", "book.pdf"))
+  writeLines("typst", file.path(source, "typst", "book.pdf"))
+  writeLines("odt", file.path(source, "doc", "book.odt"))
+  writeLines("# Git", file.path(source, "git", "index.md"))
   withr::defer(unlink(root, recursive = TRUE, force = TRUE))
 
-  html_outputs = file.path(root, "rendered")
-  dir.create(file.path(html_outputs, "user-guide"), recursive = TRUE)
-  dir.create(file.path(html_outputs, "technical-guide"), recursive = TRUE)
-  writeLines("user", file.path(html_outputs, "user-guide", "index.html"))
-  writeLines("technical", file.path(html_outputs, "technical-guide", "index.html"))
+  project = list(name = "book", path = root)
+  result = .publish_project_to(project, "_outputs", destination)
 
-  projects = lapply(
-    c("01-user-guide", "02-technical-guide"),
-    function(name) {
-      path = file.path(root, name)
-      dir.create(path)
-      file.create(file.path(path, "_quarto-html.yml"))
-      structure(
-        list(
-          name = name,
-          path = normalizePath(path, winslash = "/"),
-          type = "website",
-          format_types = c(html = "website")
-        ),
-        class = c("iasi_quarto_project", "list")
-      )
-    }
-  )
+  expect_true(file.exists(file.path(destination, "html", "index.html")))
+  expect_true(file.exists(file.path(destination, "pdf", "book.pdf")))
+  expect_true(file.exists(file.path(destination, "typst", "book.pdf")))
+  expect_true(file.exists(file.path(destination, "doc", "book.odt")))
+  expect_true(file.exists(file.path(destination, "git", "index.md")))
+  expect_false(file.exists(file.path(destination, "book.pdf")))
+  expect_true(file.exists(file.path(source, "pdf", "book.pdf")))
+  expect_true(result$published)
+})
 
-  testthat::local_mocked_bindings(
-    .discover_publish_output = function(project, format) {
-      slug = sub("^[0-9]+-", "", project$name)
-      list(path = file.path(html_outputs, slug))
-    },
-    .check_publish_sources = function(project, outputs, publish_path) outputs,
-    .package = "iasi.quarto"
-  )
+test_that("publish replaces the IASI export anchor with existing formats", {
+  root = tempfile("iasi-export-")
+  source = file.path(root, "_outputs")
+  destination = file.path(root, "publish")
+  dir.create(file.path(source, "html"), recursive = TRUE)
+  dir.create(file.path(source, "pdf"), recursive = TRUE)
+  dir.create(file.path(source, "typst"), recursive = TRUE)
+  dir.create(file.path(source, "odt"), recursive = TRUE)
+  dir.create(file.path(source, "gfm"), recursive = TRUE)
+  writeLines(c("<nav>", "<!-- IASI_EXPORT -->", "</nav>"), file.path(source, "html", "index.html"))
+  writeLines("pdf", file.path(source, "pdf", "book.pdf"))
+  writeLines("typst", file.path(source, "typst", "book.pdf"))
+  writeLines("odt", file.path(source, "odt", "book.odt"))
+  writeLines("# GFM", file.path(source, "gfm", "index.md"))
+  withr::defer(unlink(root, recursive = TRUE, force = TRUE))
+
+  .publish_project_to(list(name = "book", path = root), "_outputs", destination)
+  html = paste(readLines(file.path(destination, "html", "index.html")), collapse = "\n")
+
+  expect_match(html, ">Export<", fixed = TRUE)
+  expect_match(html, 'href="../pdf/book.pdf"', fixed = TRUE)
+  expect_match(html, 'href="../typst/book.pdf"', fixed = TRUE)
+  expect_match(html, 'href="../odt/book.odt"', fixed = TRUE)
+  expect_match(html, 'href="../gfm/index.md"', fixed = TRUE)
+  expect_false(grepl("IASI_EXPORT", html, fixed = TRUE))
+})
+
+test_that("publish accepts another source directory", {
+  root = tempfile("iasi-publish-source-")
+  source = file.path(root, "rendered")
+  destination = file.path(root, "publish")
+  dir.create(file.path(source, "html"), recursive = TRUE)
+  writeLines("home", file.path(source, "html", "index.html"))
+  withr::defer(unlink(root, recursive = TRUE, force = TRUE))
+
+  result = .publish_project_to(list(name = "book", path = root), "rendered", destination)
+  expect_true(file.exists(file.path(destination, "html", "index.html")))
+  expect_identical(basename(result$publish_source), "rendered")
+})
+
+test_that("multiproject publish preserves each project output tree", {
+  root = tempfile("iasi-publish-multiproject-")
+  dir.create(root)
+  withr::defer(unlink(root, recursive = TRUE, force = TRUE))
+
+  projects = lapply(c("01-user-guide", "02-technical-guide"), function(name) {
+    path = file.path(root, name)
+    dir.create(file.path(path, "_outputs", "html"), recursive = TRUE)
+    writeLines(name, file.path(path, "_outputs", "html", "index.html"))
+    structure(list(name = name, path = normalizePath(path, winslash = "/")), class = c("iasi_quarto_project", "list"))
+  })
 
   result = .publish_multiproject(list(path = root, projects = projects))
-  landing = readLines(file.path(root, "publish", "index.html"), warn = FALSE)
-
-  expect_true(any(grepl('href="user-guide/"', landing)))
-  expect_true(any(grepl('href="technical-guide/"', landing)))
-  expect_true(file.exists(file.path(root, "publish", "user-guide", "index.html")))
-  expect_true(file.exists(file.path(root, "publish", "technical-guide", "index.html")))
+  expect_true(file.exists(file.path(root, "publish", "user-guide", "html", "index.html")))
+  expect_true(file.exists(file.path(root, "publish", "technical-guide", "html", "index.html")))
   expect_true(file.exists(file.path(root, "publish", ".publish")))
   expect_true(file.exists(file.path(root, "publish", ".nojekyll")))
   expect_true(all(vapply(result$projects, function(project) project$published, logical(1))))

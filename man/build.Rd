@@ -12,9 +12,10 @@ selected by its complete directory name, its name without the numeric
 prefix, or its numeric prefix. Use \code{"all"} or \code{NULL} to build every
 publication. This argument is ignored when \code{path} is itself a publication.}
 
-\item{format}{Output format or formats. Use \code{"html"}, \code{"pdf"}, \code{"all"} or
-\code{NULL}. \code{NULL} and \code{"all"} select every format supported by each selected
-publication type.}
+\item{format}{Output format or formats. Supported values are \code{"html"},
+\code{"pdf"}, \code{"typst"}, \code{"epub"}, \code{"doc"}, \code{"odt"}, \code{"git"}, and \code{"gfm"}. Use
+\code{"all"} or \code{NULL} for the default friendly set: HTML, PDF, EPUB, DOC,
+and Git.}
 
 \item{path}{IASI Quarto publication or multiproject directory.}
 }

@@ -1,79 +1,45 @@
-#' Assemble IASI Quarto publications for deployment
+#' Prepare IASI Quarto outputs for deployment
 #'
-#' Creates a deployable `publish/` directory from the output artifacts already
-#' rendered by Quarto.
+#' Copies a rendered output tree to `publish/` without changing its directory
+#' structure. The default source is `_outputs/`, but another source directory
+#' can be selected explicitly.
 #'
-#' `publish()` does not render publications. It discovers the output formats
-#' declared by the available Quarto profiles, resolves each profile's effective
-#' `project.output-dir`, checks that the corresponding artifacts exist, and
-#' assembles them under `publish/`.
+#' After copying, `publish()` scans every `index.html` inside the published tree.
+#' When an IASI export anchor is present, it is replaced by an Export dropdown
+#' containing links to the export artifacts that actually exist.
 #'
-#' When HTML is available, its complete output directory is copied. When PDF is
-#' available, the generated book PDF is copied to the root of `publish/` so a
-#' Quarto `book.downloads: [pdf]` link can resolve normally.
+#' Supported anchors are `<!-- IASI_EXPORT -->`, `<div class="iasi-export"></div>`
+#' and `<div class="iasi-export-anchor"></div>`.
 #'
 #' @param book Publication or publications to publish. A publication can be
 #'   selected by its complete directory name, its name without the numeric
 #'   prefix, or its numeric prefix. Use `"all"` or `NULL` to publish every
 #'   publication. This argument is ignored when `path` is itself a publication.
+#' @param source Output directory to copy, relative to each publication root by
+#'   default. Absolute paths are also accepted. Defaults to `_outputs`.
 #' @param path IASI Quarto publication or multiproject directory.
 #'
 #' @return Invisibly returns the completed `iasi_quarto_plan`. Returns `NULL`
 #'   when `path` does not appear to be an IASI Quarto workspace.
 #'
 #' @export
-publish = function(book = NULL, path = ".") {
+publish = function(book = NULL, source = "_outputs", path = ".") {
   started_at = Sys.time()
-
   plan = validate(path)
+  if (is.null(plan)) return(invisible(NULL))
 
-  if (is.null(plan)) {
-    return(invisible(NULL))
-  }
-
-  plan = .select_build_books(
-    plan = plan,
-    book = book
-  )
-
+  plan = .select_build_books(plan, book)
   plan = .discover(plan)
   plan = .check(plan)
-
   .assert_checked_plan(plan)
 
-  numbered_project = isTRUE(plan$current) && grepl(
-    "^[0-9]+-",
-    basename(plan$path)
-  )
+  numbered_project = isTRUE(plan$current) && grepl("^[0-9]+-", basename(plan$path))
+  if (numbered_project) plan = .publish_numbered_project(plan, source)
+  else if (isTRUE(plan$current)) plan$projects = lapply(plan$projects, .publish_project, source = source)
+  else plan = .publish_multiproject(plan, source)
 
-  if (numbered_project) {
-    plan = .publish_numbered_project(plan)
-  } else if (isTRUE(plan$current)) {
-    plan$projects = lapply(
-      plan$projects,
-      .publish_project
-    )
-  } else {
-    plan = .publish_multiproject(plan)
-  }
-
-  plan$published = all(vapply(
-    plan$projects,
-    function(project) {
-      isTRUE(project$published)
-    },
-    logical(1)
-  ))
-
-  plan$elapsed = as.numeric(
-    difftime(
-      Sys.time(),
-      started_at,
-      units = "secs"
-    )
-  )
-
+  plan$published = all(vapply(plan$projects, function(project) isTRUE(project$published), logical(1)))
+  plan$elapsed = as.numeric(difftime(Sys.time(), started_at, units = "secs"))
   .report_publish(plan)
-
   invisible(plan)
 }

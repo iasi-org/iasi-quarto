@@ -116,3 +116,34 @@ test_that("validate treats the current publication as the workspace", {
     )
   )
 })
+
+test_that("validate recognises a book with any supported output profile", {
+  root = tempfile("iasi-validate-profile-")
+  dir.create(root)
+  withr::defer(unlink(root, recursive = TRUE, force = TRUE))
+  writeLines(c("project:", "  type: book"), file.path(root, "_quarto.yml"))
+  writeLines("publication: {}", file.path(root, "_iasi.yml"))
+  file.create(file.path(root, "_quarto-odt.yml"))
+
+  expect_true(.is_iasi_publication(root))
+})
+
+test_that("recursive discovery ignores tests directories", {
+  root = tempfile("iasi-validate-ignore-tests-")
+  book = file.path(root, "book")
+  fixture = file.path(root, "tests", "testthat", "fixtures", "malformed")
+  dir.create(book, recursive = TRUE)
+  dir.create(fixture, recursive = TRUE)
+  withr::defer(unlink(root, recursive = TRUE, force = TRUE))
+
+  writeLines(c("project:", "  type: book"), file.path(book, "_quarto.yml"))
+  writeLines("publication: {}", file.path(book, "_iasi.yml"))
+  file.create(file.path(book, "_quarto-html.yml"))
+
+  writeLines(c("project:", "  type: [book"), file.path(fixture, "_quarto.yml"))
+  writeLines("publication: {}", file.path(fixture, "_iasi.yml"))
+  file.create(file.path(fixture, "_quarto-html.yml"))
+
+  plan = suppressMessages(validate(root))
+  expect_identical(plan$books, normalizePath(book, winslash = "/", mustWork = TRUE))
+})

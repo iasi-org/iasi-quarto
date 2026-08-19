@@ -12,9 +12,10 @@
 #'   selected by its complete directory name, its name without the numeric
 #'   prefix, or its numeric prefix. Use `"all"` or `NULL` to build every
 #'   publication. This argument is ignored when `path` is itself a publication.
-#' @param format Output format or formats. Use `"html"`, `"pdf"`, `"all"` or
-#'   `NULL`. `NULL` and `"all"` select every format supported by each selected
-#'   publication type.
+#' @param format Output format or formats. Supported values are `"html"`,
+#'   `"pdf"`, `"typst"`, `"epub"`, `"doc"`, `"odt"`, `"git"`, and `"gfm"`. Use
+#'   `"all"` or `NULL` for the default friendly set: HTML, PDF, EPUB, DOC,
+#'   and Git.
 #' @param path IASI Quarto publication or multiproject directory.
 #'
 #' @return Invisibly returns the completed `iasi_quarto_plan`. Returns `NULL`
@@ -24,6 +25,7 @@
 build = function(book = NULL, format = NULL, path = ".") {
   started_at = Sys.time()
 
+  quiet_missing = identical(.normalise_build_selection(format, "format"), "all")
   formats = .resolve_build_formats(format)
 
   plan = validate(path)
@@ -44,7 +46,8 @@ build = function(book = NULL, format = NULL, path = ".") {
   plan$projects = lapply(
     plan$projects,
     .render_build_project,
-    formats = formats
+    formats = formats,
+    quiet_missing = quiet_missing
   )
 
   plan$rendered = all(vapply(

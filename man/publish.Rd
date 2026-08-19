@@ -2,15 +2,18 @@
 % Please edit documentation in R/publish.R
 \name{publish}
 \alias{publish}
-\title{Assemble IASI Quarto publications for deployment}
+\title{Prepare IASI Quarto outputs for deployment}
 \usage{
-publish(book = NULL, path = ".")
+publish(book = NULL, source = "_outputs", path = ".")
 }
 \arguments{
 \item{book}{Publication or publications to publish. A publication can be
 selected by its complete directory name, its name without the numeric
 prefix, or its numeric prefix. Use \code{"all"} or \code{NULL} to publish every
 publication. This argument is ignored when \code{path} is itself a publication.}
+
+\item{source}{Output directory to copy, relative to each publication root by
+default. Absolute paths are also accepted. Defaults to \verb{_outputs}.}
 
 \item{path}{IASI Quarto publication or multiproject directory.}
 }
@@ -19,16 +22,15 @@ Invisibly returns the completed \code{iasi_quarto_plan}. Returns \code{NULL}
 when \code{path} does not appear to be an IASI Quarto workspace.
 }
 \description{
-Creates a deployable \verb{publish/} directory from the output artifacts already
-rendered by Quarto.
+Copies a rendered output tree to \verb{publish/} without changing its directory
+structure. The default source is \verb{_outputs/}, but another source directory
+can be selected explicitly.
 }
 \details{
-\code{publish()} does not render publications. It discovers the output formats
-declared by the available Quarto profiles, resolves each profile's effective
-\code{project.output-dir}, checks that the corresponding artifacts exist, and
-assembles them under \verb{publish/}.
+After copying, \code{publish()} scans every \code{index.html} inside the published tree.
+When an IASI export anchor is present, it is replaced by an Export dropdown
+containing links to the export artifacts that actually exist.
 
-When HTML is available, its complete output directory is copied. When PDF is
-available, the generated book PDF is copied to the root of \verb{publish/} so a
-Quarto \verb{book.downloads: [pdf]} link can resolve normally.
+Supported anchors are \verb{<!-- IASI_EXPORT -->}, \verb{<div class="iasi-export"></div>}
+and \verb{<div class="iasi-export-anchor"></div>}.
 }

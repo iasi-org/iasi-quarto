@@ -159,12 +159,16 @@
 .publication_format_types = function(type, html_landing_page = FALSE) {
   switch(
     type,
-    website = c(
-      html = "website"
-    ),
+    website = c(html = "website"),
     book = c(
       html = if (isTRUE(html_landing_page)) "website" else "book",
-      pdf = "book"
+      pdf = "book",
+      typst = "book",
+      epub = "book",
+      doc = "book",
+      odt = "book",
+      git = "book",
+      gfm = "book"
     ),
     character()
   )
