@@ -43,7 +43,7 @@ Creemos que el mejor framework es aquel que desaparece detrás del contenido.
 
 - Descubrimiento automático de la estructura del proyecto.
 - Generación automática de la estructura del libro.
-- Renderizado HTML, PDF (Typst), Typst directo, EPUB, ODT/DOC y GFM/Git.
+- Renderizado HTML, PDF, Typst, EPUB, ODT/DOC y GFM/Git.
 - API pública sencilla.
 - Arquitectura modular basada en *engines* internos.
 - Componentes reutilizables.

@@ -66,7 +66,7 @@ test_that("all ignores missing profiles without warning", {
   expect_identical(result, "html")
 })
 
-test_that("build renders configured formats and PDF uses Typst", {
+test_that("build renders configured formats with their Quarto formats", {
   root = .copy_test_fixture("build", "single")
   calls = new.env(parent = emptyenv())
   calls$profiles = character()
@@ -84,7 +84,7 @@ test_that("build renders configured formats and PDF uses Typst", {
   plan = NULL
   expect_no_warning({ plan = build(path = root) })
   expect_identical(calls$profiles, c("html", "pdf"))
-  expect_identical(calls$to, c("html", "typst"))
+  expect_identical(calls$to, c("html", "pdf"))
   expect_identical(plan$formats, c("html", "pdf"))
   expect_true(plan$rendered)
 })

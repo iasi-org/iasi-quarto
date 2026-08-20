@@ -54,7 +54,7 @@ We believe that **the best framework is the one that disappears behind the conte
 
 - Automatic project discovery.
 - Automatic book structure generation.
-- HTML, PDF (Typst), EPUB, ODT/DOC, and GFM/Git rendering.
+- HTML, PDF, Typst, EPUB, ODT/DOC, and GFM/Git rendering.
 - Simple public API.
 - Modular architecture based on internal engines.
 - Reusable components.
