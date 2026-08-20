@@ -11,8 +11,7 @@
   slug = sub("^[0-9]+-", "", basename(project$path))
   destination = if (identical(.numbered_prefix(project$path), 0L)) publish_path else file.path(publish_path, slug)
 
-  if (dir.exists(destination)) unlink(destination, recursive = TRUE, force = TRUE)
-  project = .publish_project_to(project, source, destination, clean = FALSE)
+  project = .publish_project_to(project, source, destination, clean = TRUE)
   dir.create(publish_path, recursive = TRUE, showWarnings = FALSE)
   file.create(file.path(publish_path, ".nojekyll"))
   .write_publish_stamp(publish_path)
@@ -24,21 +23,33 @@
 
 .publish_multiproject = function(plan, source = "_outputs") {
   publish_path = file.path(plan$path, "publish")
+  work_path = paste0(publish_path, ".work")
   prefixes = vapply(plan$projects, function(project) .numbered_prefix(project$path), integer(1))
   slugs = vapply(plan$projects, function(project) sub("^[0-9]+-", "", basename(project$path)), character(1))
 
   if (anyDuplicated(slugs)) stop("Publication names are not unique after removing numeric prefixes.", call. = FALSE)
   if (sum(prefixes == 0L) > 1L) stop("A multiproject repository cannot contain more than one 00-* landing project.", call. = FALSE)
-  if (dir.exists(publish_path)) unlink(publish_path, recursive = TRUE, force = TRUE)
-  dir.create(publish_path, recursive = TRUE, showWarnings = FALSE)
+
+  if (dir.exists(work_path)) unlink(work_path, recursive = TRUE, force = TRUE)
+  dir.create(work_path, recursive = TRUE, showWarnings = FALSE)
+  completed = FALSE
+  on.exit(if (!completed && dir.exists(work_path)) unlink(work_path, recursive = TRUE, force = TRUE), add = TRUE)
 
   plan$projects = Map(function(project, prefix, slug) {
-    destination = if (identical(prefix, 0L)) publish_path else file.path(publish_path, slug)
+    destination = if (identical(prefix, 0L)) work_path else file.path(work_path, slug)
     .publish_project_to(project, source, destination, clean = FALSE)
   }, plan$projects, prefixes, slugs)
 
-  file.create(file.path(publish_path, ".nojekyll"))
-  .write_publish_stamp(publish_path)
+  file.create(file.path(work_path, ".nojekyll"))
+  .write_publish_stamp(work_path)
+  .replace_publish_tree(work_path, publish_path)
+  completed = TRUE
+
+  plan$projects = Map(function(project, prefix, slug) {
+    project$publish_path = .normalise_project_path(if (identical(prefix, 0L)) publish_path else file.path(publish_path, slug))
+    project
+  }, plan$projects, prefixes, slugs)
+
   plan$publish_path = .normalise_project_path(publish_path)
   plan
 }
@@ -47,17 +58,40 @@
   source_path = .publish_source_path(project$path, source)
   .check_publish_tree(source_path, destination, project$name)
 
-  if (clean && dir.exists(destination)) unlink(destination, recursive = TRUE, force = TRUE)
-  dir.create(destination, recursive = TRUE, showWarnings = FALSE)
-  .copy_directory_contents(source_path, destination)
-  .sync_export_anchors(destination)
-  .write_publish_stamp(destination)
+  if (clean) {
+    work_path = paste0(destination, ".work")
+    if (dir.exists(work_path)) unlink(work_path, recursive = TRUE, force = TRUE)
+    dir.create(work_path, recursive = TRUE, showWarnings = FALSE)
+    completed = FALSE
+    on.exit(if (!completed && dir.exists(work_path)) unlink(work_path, recursive = TRUE, force = TRUE), add = TRUE)
+
+    .prepare_publish_tree(source_path, work_path)
+    .replace_publish_tree(work_path, destination)
+    completed = TRUE
+  } else {
+    dir.create(destination, recursive = TRUE, showWarnings = FALSE)
+    .prepare_publish_tree(source_path, destination)
+  }
 
   project$publish_path = .normalise_project_path(destination)
   project$publish_source = .normalise_project_path(source_path)
-  project$publish_outputs = .published_directories(destination)
+  project$publish_outputs = .published_directories(source_path)
   project$published = TRUE
   project
+}
+
+.prepare_publish_tree = function(source, destination) {
+  .copy_directory_contents(source, destination)
+  .move_publish_html_to_root(destination)
+  .sync_export_anchors(destination)
+  .write_publish_stamp(destination)
+  invisible(TRUE)
+}
+
+.replace_publish_tree = function(work, destination) {
+  if (dir.exists(destination)) unlink(destination, recursive = TRUE, force = TRUE)
+  if (!file.rename(work, destination)) stop(sprintf("Could not replace publish directory '%s'.", destination), call. = FALSE)
+  invisible(TRUE)
 }
 
 .publish_source_path = function(project_path, source) {
@@ -159,6 +193,24 @@
   parts = c(rep("..", length(from) - common), tail)
   if (!length(parts)) return(".")
   paste(parts, collapse = "/")
+}
+
+.move_publish_html_to_root = function(path) {
+  html = file.path(path, "html")
+  if (!dir.exists(html)) return(invisible(TRUE))
+
+  entries = list.files(html, full.names = TRUE, all.files = TRUE, no.. = TRUE)
+  targets = file.path(path, basename(entries))
+  conflicts = targets[file.exists(targets) | dir.exists(targets)]
+  if (length(conflicts)) stop(sprintf("HTML publication conflicts with another published output: %s.", paste(basename(conflicts), collapse = ", ")), call. = FALSE)
+
+  if (length(entries)) {
+    moved = file.rename(entries, targets)
+    if (!all(moved)) stop(sprintf("Could not move all HTML publication files to '%s'.", path), call. = FALSE)
+  }
+
+  unlink(html, recursive = TRUE, force = TRUE)
+  invisible(TRUE)
 }
 
 .copy_directory_contents = function(from, to) {

@@ -22,9 +22,12 @@ Invisibly returns the completed \code{iasi_quarto_plan}. Returns \code{NULL}
 when \code{path} does not appear to be an IASI Quarto workspace.
 }
 \description{
-Copies a rendered output tree to \verb{publish/} without changing its directory
-structure. The default source is \verb{_outputs/}, but another source directory
-can be selected explicitly.
+Prepares a rendered output tree as a deployable \verb{publish/} package. HTML
+contents are placed directly in the publication root, while every other
+rendered format keeps its own subdirectory. Publication is prepared first in
+\verb{publish.work/}; only after preparation succeeds does it replace the existing
+\verb{publish/} tree. The default source is \verb{_outputs/}, but another source
+directory can be selected explicitly.
 }
 \details{
 After copying, \code{publish()} scans every \code{index.html} inside the published tree.

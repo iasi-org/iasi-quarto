@@ -1,8 +1,11 @@
 #' Prepare IASI Quarto outputs for deployment
 #'
-#' Copies a rendered output tree to `publish/` without changing its directory
-#' structure. The default source is `_outputs/`, but another source directory
-#' can be selected explicitly.
+#' Prepares a rendered output tree as a deployable `publish/` package. HTML
+#' contents are placed directly in the publication root, while every other
+#' rendered format keeps its own subdirectory. Publication is prepared first in
+#' `publish.work/`; only after preparation succeeds does it replace the existing
+#' `publish/` tree. The default source is `_outputs/`, but another source
+#' directory can be selected explicitly.
 #'
 #' After copying, `publish()` scans every `index.html` inside the published tree.
 #' When an IASI export anchor is present, it is replaced by an Export dropdown
