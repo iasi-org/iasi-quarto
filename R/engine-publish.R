@@ -14,7 +14,7 @@
   project = .publish_project_to(project, source, destination, clean = TRUE)
   dir.create(publish_path, recursive = TRUE, showWarnings = FALSE)
   file.create(file.path(publish_path, ".nojekyll"))
-  .write_publish_stamp(publish_path)
+  .write_publish_timestamp(publish_path)
 
   plan$projects = list(project)
   plan$publish_path = .normalise_project_path(publish_path)
@@ -41,7 +41,7 @@
   }, plan$projects, prefixes, slugs)
 
   file.create(file.path(work_path, ".nojekyll"))
-  .write_publish_stamp(work_path)
+  .write_publish_timestamp(work_path)
   .replace_publish_tree(work_path, publish_path)
   completed = TRUE
 
@@ -65,12 +65,12 @@
     completed = FALSE
     on.exit(if (!completed && dir.exists(work_path)) unlink(work_path, recursive = TRUE, force = TRUE), add = TRUE)
 
-    .prepare_publish_tree(source_path, work_path)
+    .prepare_publish_tree(source_path, work_path, project$path)
     .replace_publish_tree(work_path, destination)
     completed = TRUE
   } else {
     dir.create(destination, recursive = TRUE, showWarnings = FALSE)
-    .prepare_publish_tree(source_path, destination)
+    .prepare_publish_tree(source_path, destination, project$path)
   }
 
   project$publish_path = .normalise_project_path(destination)
@@ -80,12 +80,12 @@
   project
 }
 
-.prepare_publish_tree = function(source, destination) {
-  .copy_directory_contents(source, destination)
-  .move_publish_html_to_root(destination)
-  .sync_export_anchors(destination)
-  .write_publish_stamp(destination)
-  invisible(TRUE)
+.prepare_publish_tree = function(source, destination, project_path) {
+   .copy_directory_contents(source, destination)
+   .move_publish_html_to_root(destination)
+   .sync_export_anchors(destination)
+   .write_publish_timestamp(destination)
+   invisible(TRUE)
 }
 
 .replace_publish_tree = function(work, destination) {
@@ -222,11 +222,51 @@
   invisible(TRUE)
 }
 
-.write_publish_stamp = function(path) {
-  writeLines(format(Sys.time(), tz = "UTC", format = "%Y-%m-%dT%H:%M:%OS6Z"), file.path(path, ".publish"), useBytes = TRUE)
-  invisible(TRUE)
+.write_publish_timestamp = function(path, project_path = NULL) {
+   timestamp = Sys.time()
+   stamp = format(timestamp, tz = "UTC", format = "%Y-%m-%dT%H:%M:%OS6Z")
+   writeLines(stamp, file.path(path, ".publish"), useBytes = TRUE)
+   publish_date = format(as.Date(substr(stamp, 1L, 10L)), "%d/%m/%Y")
+   version = NULL
+   
+   if (!is.null(project_path)) {
+      iasi_path = file.path(project_path, "_iasi.yml")
+      
+      if (file.exists(iasi_path)) {
+         iasi = yaml::read_yaml(iasi_path)
+         version = iasi$version
+         
+         if ( is.null(version) ||
+             !length(version) ||
+             !nzchar(as.character(version))) {
+            version = NULL
+         }
+      }
+   }
+   
+   text = if (is.null(version)) {
+      sprintf("Publicado: %s", publish_date)
+   } else {
+      sprintf("v%s · Publicado: %s", as.character(version), publish_date)
+   }
+   
+   files = list.files(path, pattern = "\\.html$", recursive = TRUE, full.names = TRUE, ignore.case = TRUE)
+   
+   placeholder = '<span id="iasi-publish-date"></span>'
+   replacement = sprintf('<span id="iasi-publish-date">%s</span>',text)
+   
+   for (file in files) {
+      html = paste(
+         readLines(file, warn = FALSE, encoding = "UTF-8"), collapse = "\n")
+      
+      if (!grepl(placeholder, html, fixed = TRUE)) next
+      
+      html = gsub(placeholder, replacement, html, fixed = TRUE)
+      writeLines(html, file, useBytes = TRUE)
+   }
+   
+   invisible(TRUE)
 }
-
 .report_publish = function(plan) {
   report_root = if (isTRUE(plan$current) && grepl("^[0-9]+-", basename(plan$path))) dirname(plan$path) else plan$path
 
