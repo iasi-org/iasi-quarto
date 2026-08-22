@@ -103,10 +103,87 @@
     publication = renderer(publication, .project_format_type(project, format))
   }
 
+  if ("html" %in% project_formats) {
+    .write_html_exports(project)
+  }
+
   project$publication = publication
   project$render_formats = project_formats
   project
 }
+
+.write_html_exports = function(project) {
+  groups = project$quarto$profile$group
+  profiles = unique(unlist(groups, use.names = FALSE))
+  profiles = setdiff(profiles, "html")
+
+  output_file = project$quarto$book[["output-file"]]
+  if (is.null(output_file) || !length(output_file) || !nzchar(output_file)) {
+    output_file = project$name
+  }
+
+  labels = c(
+    pdf = "PDF",
+    typst = "PDF (Typst)",
+    epub = "eBook",
+    doc = "DOC",
+    odt = "ODT",
+    git = "GitBook",
+    gfm = "GFM"
+  )
+
+  extensions = c(
+    pdf = "pdf",
+    typst = "pdf",
+    epub = "epub",
+    doc = "odt",
+    odt = "odt"
+  )
+
+  items = vapply(
+    profiles,
+    function(profile) {
+      label = if (profile %in% names(labels)) labels[[profile]] else profile
+
+      href = if (profile %in% c("git", "gfm")) {
+        sprintf("../%s/index.md", profile)
+      } else if (profile %in% names(extensions)) {
+        sprintf("../%s/%s.%s", profile, output_file, extensions[[profile]])
+      } else {
+        sprintf("../%s/", profile)
+      }
+
+      sprintf(
+        '    {"profile": %s, "text": %s, "href": %s}',
+        encodeString(profile, quote = '"'),
+        encodeString(label, quote = '"'),
+        encodeString(href, quote = '"')
+      )
+    },
+    character(1)
+  )
+
+  content = if (length(items)) {
+    c(
+      "{",
+      '  "exports": [',
+      paste(items, collapse = ",\n"),
+      "  ]",
+      "}"
+    )
+  } else {
+    c(
+      "{",
+      '  "exports": []',
+      "}"
+    )
+  }
+
+  path = file.path(project$path, "_outputs", "html", "exports.json")
+  .write_if_changed(content, path)
+  invisible(path)
+}
+
 
 .report_build = function(plan) {
   renders = sum(vapply(plan$projects, function(project) length(project$render_formats), integer(1)))
