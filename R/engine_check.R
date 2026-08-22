@@ -141,32 +141,6 @@
     )
   }
 
-  if (is.list(publication)) {
-    allowed_keys = c(
-      "strategy",
-      "content-dir",
-      "numbered",
-      "html"
-    )
-
-    unknown_keys = setdiff(
-      names(publication),
-      allowed_keys
-    )
-
-    if (length(unknown_keys)) {
-      errors = c(
-        errors,
-        sprintf(
-          "Unknown publication keys in _iasi.yml: %s.",
-          paste(
-            unknown_keys,
-            collapse = ", "
-          )
-        )
-      )
-    }
-  }
 
   html = if (is.list(publication)) {
     publication[["html"]]
@@ -181,26 +155,6 @@
     )
   }
 
-  if (is.list(html)) {
-    allowed_html_keys = "landing-page"
-    unknown_html_keys = setdiff(
-      names(html),
-      allowed_html_keys
-    )
-
-    if (length(unknown_html_keys)) {
-      errors = c(
-        errors,
-        sprintf(
-          "Unknown publication.html keys in _iasi.yml: %s.",
-          paste(
-            unknown_html_keys,
-            collapse = ", "
-          )
-        )
-      )
-    }
-  }
 
   if (
     !is.logical(project$html_landing_page) ||

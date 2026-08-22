@@ -112,15 +112,48 @@
   project
 }
 
+.resolve_export_output_file = function(project, profile) {
+  profile_file = file.path(
+    project$path,
+    sprintf("_quarto-%s.yml", profile)
+  )
+
+  profile_quarto = if (file.exists(profile_file)) {
+    .read_yaml_file(profile_file)
+  } else {
+    list()
+  }
+
+  candidates = list(
+    .yaml_field(
+      .yaml_section(profile_quarto, "book"),
+      "output-file"
+    ),
+    .yaml_field(
+      .yaml_section(project$quarto, "book"),
+      "output-file"
+    ),
+    project$name
+  )
+
+  for (candidate in candidates) {
+    if (
+      is.character(candidate) &&
+        length(candidate) == 1L &&
+        !is.na(candidate) &&
+        nzchar(candidate)
+    ) {
+      return(candidate)
+    }
+  }
+
+  project$name
+}
+
 .write_html_exports = function(project) {
   groups = project$quarto$profile$group
   profiles = unique(unlist(groups, use.names = FALSE))
   profiles = setdiff(profiles, "html")
-
-  output_file = project$quarto$book[["output-file"]]
-  if (is.null(output_file) || !length(output_file) || !nzchar(output_file)) {
-    output_file = project$name
-  }
 
   labels = c(
     pdf = "PDF",
@@ -159,6 +192,7 @@
       href = if (profile %in% c("git", "gfm")) {
         sprintf("../%s/index.md", profile)
       } else if (profile %in% names(extensions)) {
+        output_file = .resolve_export_output_file(project, profile)
         sprintf("../%s/%s.%s", profile, output_file, extensions[[profile]])
       } else {
         sprintf("../%s/", profile)

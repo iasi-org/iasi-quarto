@@ -148,7 +148,7 @@ expect_match(
     
 })
 
-test_that("check detects unknown IASI publication keys", {
+test_that("check tolerates unknown IASI publication keys", {
   root = testthat::test_path(
     "fixtures",
     "check",
@@ -161,11 +161,40 @@ test_that("check detects unknown IASI publication keys", {
     )
   )
 
-  expect_false(plan$valid)
-
-  expect_match(
+  expect_true(plan$valid)
+  expect_length(
     plan$projects[[1L]]$errors,
-    "stratgey"
+    0L
+  )
+})
+
+test_that("check accepts extension publication keys such as version", {
+  root = .copy_test_fixture(
+    "check",
+    "regular-without-index"
+  )
+
+  iasi_file = file.path(root, "_iasi.yml")
+  iasi = readLines(iasi_file, warn = FALSE)
+
+  writeLines(
+    c(
+      iasi,
+      '  version: "0.1.0"'
+    ),
+    iasi_file
+  )
+
+  plan = check(
+    discover(
+      validate(root)
+    )
+  )
+
+  expect_true(plan$valid)
+  expect_length(
+    plan$projects[[1L]]$errors,
+    0L
   )
 })
 

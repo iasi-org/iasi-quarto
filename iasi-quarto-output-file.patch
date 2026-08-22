@@ -1,0 +1,144 @@
+--- a/R/engine_build.R
++++ b/R/engine_build.R
+@@ -112,15 +112,48 @@
+   project
+ }
+ 
++.resolve_export_output_file = function(project, profile) {
++  profile_file = file.path(
++    project$path,
++    sprintf("_quarto-%s.yml", profile)
++  )
++
++  profile_quarto = if (file.exists(profile_file)) {
++    .read_yaml_file(profile_file)
++  } else {
++    list()
++  }
++
++  candidates = list(
++    .yaml_field(
++      .yaml_section(profile_quarto, "book"),
++      "output-file"
++    ),
++    .yaml_field(
++      .yaml_section(project$quarto, "book"),
++      "output-file"
++    ),
++    project$name
++  )
++
++  for (candidate in candidates) {
++    if (
++      is.character(candidate) &&
++        length(candidate) == 1L &&
++        !is.na(candidate) &&
++        nzchar(candidate)
++    ) {
++      return(candidate)
++    }
++  }
++
++  project$name
++}
++
+ .write_html_exports = function(project) {
+   groups = project$quarto$profile$group
+   profiles = unique(unlist(groups, use.names = FALSE))
+   profiles = setdiff(profiles, "html")
+-
+-  output_file = project$quarto$book[["output-file"]]
+-  if (is.null(output_file) || !length(output_file) || !nzchar(output_file)) {
+-    output_file = project$name
+-  }
+ 
+   labels = c(
+     pdf = "PDF",
+@@ -159,6 +192,7 @@
+       href = if (profile %in% c("git", "gfm")) {
+         sprintf("../%s/index.md", profile)
+       } else if (profile %in% names(extensions)) {
++        output_file = .resolve_export_output_file(project, profile)
+         sprintf("../%s/%s.%s", profile, output_file, extensions[[profile]])
+       } else {
+         sprintf("../%s/", profile)
+--- /dev/null
++++ b/tests/testthat/test-output-file.R
+@@ -0,0 +1,77 @@
++test_that("profile output-file has priority over the common book output-file", {
++  root = tempfile("iasi-output-file-")
++  dir.create(root)
++  withr::defer(unlink(root, recursive = TRUE, force = TRUE))
++
++  writeLines(
++    c(
++      "book:",
++      '  output-file: "profile-name"'
++    ),
++    file.path(root, "_quarto-pdf.yml")
++  )
++
++  project = list(
++    name = "default-name",
++    path = root,
++    quarto = list(
++      book = list(
++        "output-file" = "common-name"
++      )
++    )
++  )
++
++  expect_identical(
++    .resolve_export_output_file(project, "pdf"),
++    "profile-name"
++  )
++})
++
++test_that("common book output-file is used when the profile does not declare one", {
++  root = tempfile("iasi-output-file-")
++  dir.create(root)
++  withr::defer(unlink(root, recursive = TRUE, force = TRUE))
++
++  writeLines(
++    c(
++      "project:",
++      "  output-dir: _outputs/pdf",
++      "",
++      "format:",
++      "  pdf: default"
++    ),
++    file.path(root, "_quarto-pdf.yml")
++  )
++
++  project = list(
++    name = "default-name",
++    path = root,
++    quarto = list(
++      book = list(
++        "output-file" = "common-name"
++      )
++    )
++  )
++
++  expect_identical(
++    .resolve_export_output_file(project, "pdf"),
++    "common-name"
++  )
++})
++
++test_that("project name is the final output-file fallback", {
++  root = tempfile("iasi-output-file-")
++  dir.create(root)
++  withr::defer(unlink(root, recursive = TRUE, force = TRUE))
++
++  project = list(
++    name = "default-name",
++    path = root,
++    quarto = list()
++  )
++
++  expect_identical(
++    .resolve_export_output_file(project, "pdf"),
++    "default-name"
++  )
++})
