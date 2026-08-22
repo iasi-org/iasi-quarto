@@ -132,6 +132,16 @@
     gfm = "GFM"
   )
 
+  icons = c(
+    pdf = "file-earmark-pdf",
+    typst = "file-earmark-pdf",
+    epub = "book",
+    doc = "file-earmark-word",
+    odt = "file-earmark-text",
+    git = "github",
+    gfm = "markdown"
+  )
+
   extensions = c(
     pdf = "pdf",
     typst = "pdf",
@@ -144,6 +154,7 @@
     profiles,
     function(profile) {
       label = if (profile %in% names(labels)) labels[[profile]] else profile
+      icon = if (profile %in% names(icons)) icons[[profile]] else "download"
 
       href = if (profile %in% c("git", "gfm")) {
         sprintf("../%s/index.md", profile)
@@ -154,9 +165,10 @@
       }
 
       sprintf(
-        '    {"profile": %s, "text": %s, "href": %s}',
+        '    {"profile": %s, "text": %s, "icon": %s, "href": %s}',
         encodeString(profile, quote = '"'),
         encodeString(label, quote = '"'),
+        encodeString(icon, quote = '"'),
         encodeString(href, quote = '"')
       )
     },
