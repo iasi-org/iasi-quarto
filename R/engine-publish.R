@@ -65,12 +65,12 @@
     completed = FALSE
     on.exit(if (!completed && dir.exists(work_path)) unlink(work_path, recursive = TRUE, force = TRUE), add = TRUE)
 
-    .prepare_publish_tree(source_path, work_path, project$path)
+    .prepare_publish_tree(source_path, work_path, project)
     .replace_publish_tree(work_path, destination)
     completed = TRUE
   } else {
     dir.create(destination, recursive = TRUE, showWarnings = FALSE)
-    .prepare_publish_tree(source_path, destination, project$path)
+    .prepare_publish_tree(source_path, destination, project)
   }
 
   project$publish_path = .normalise_project_path(destination)
@@ -80,17 +80,71 @@
   project
 }
 
-.prepare_publish_tree = function(source, destination, project_path) {
+.prepare_publish_tree = function(source, destination, project) {
    .copy_directory_contents(source, destination)
+   
+   formats = .published_directories(destination)
+   .normalise_publish_tree(destination, project, formats)
+   
    .move_publish_html_to_root(destination)
    .sync_export_anchors(destination)
    .write_publish_timestamp(destination)
+   
    invisible(TRUE)
 }
 
 .replace_publish_tree = function(work, destination) {
-  if (dir.exists(destination)) unlink(destination, recursive = TRUE, force = TRUE)
-  if (!file.rename(work, destination)) stop(sprintf("Could not replace publish directory '%s'.", destination), call. = FALSE)
+  .make_publish_public(work)
+
+  if (dir.exists(destination)) {
+    .make_publish_public(destination)
+    unlink(destination, recursive = TRUE, force = TRUE)
+  }
+
+  if (!file.rename(work, destination)) {
+    stop(sprintf("Could not replace publish directory '%s'.", destination), call. = FALSE)
+  }
+
+  invisible(TRUE)
+}
+
+.make_publish_public = function(path) {
+  if (!dir.exists(path)) {
+    stop(sprintf("Publish directory does not exist: %s.", path), call. = FALSE)
+  }
+
+  if (.Platform$OS.type == "windows") {
+    path = normalizePath(path, winslash = "\\", mustWork = TRUE)
+
+    status = system2(
+      "icacls.exe",
+      args = c(
+        shQuote(path),
+        "/inheritance:e",
+        "/grant",
+        shQuote("*S-1-5-32-545:(OI)(CI)M"),
+        "/T",
+        "/C",
+        "/Q"
+      ),
+      stdout = FALSE,
+      stderr = FALSE
+    )
+
+    if (!identical(status, 0L)) {
+      stop(sprintf("Could not make publish directory public: %s.", path), call. = FALSE)
+    }
+
+    return(invisible(TRUE))
+  }
+
+  directories = c(path, list.dirs(path, recursive = TRUE, full.names = TRUE))
+  files = list.files(path, recursive = TRUE, full.names = TRUE, all.files = TRUE, no.. = TRUE)
+  files = files[!dir.exists(files)]
+
+  Sys.chmod(directories, mode = "0775", use_umask = FALSE)
+  if (length(files)) Sys.chmod(files, mode = "0664", use_umask = FALSE)
+
   invisible(TRUE)
 }
 
@@ -217,7 +271,7 @@
   entries = list.files(from, full.names = TRUE, all.files = TRUE, no.. = TRUE)
   if (!length(entries)) return(invisible(TRUE))
 
-  copied = file.copy(entries, to, recursive = TRUE, overwrite = TRUE, copy.mode = TRUE, copy.date = TRUE)
+  copied = file.copy(entries, to, recursive = TRUE, overwrite = TRUE, copy.mode = FALSE, copy.date = TRUE)
   if (!all(copied)) stop(sprintf("Could not copy all publication files from '%s' to '%s'.", from, to), call. = FALSE)
   invisible(TRUE)
 }
@@ -280,4 +334,355 @@
   }
 
   invisible(plan)
+}
+
+#########################################################################
+# Bloque de post proceso
+# Por cada formato, ajustamos la salida a nuestros intereses
+#########################################################################
+
+.normalise_publish_tree = function(path, project, formats) {
+   name = paste0(".normalise_", project$strategy)
+   
+   if (!exists(name, mode = "function")) return(invisible(TRUE))
+   
+   fn = get(name, mode = "function")
+   fn(path = path, project = project, formats = formats)
+   
+   invisible(TRUE)
+}
+
+.normalise_structured = function(path, project, formats) {
+   for (format in formats) {
+      name = paste0(".normalise_structured_", format)
+      
+      if (!exists(name, mode = "function")) next
+      
+      fn = get(name, mode = "function")
+      fn(path = path, project = project)
+   }
+   
+   invisible(TRUE)
+}
+
+.normalise_structured_html = function(path, project) {
+   html_path = file.path(path, "html")
+   
+   if (!dir.exists(html_path)) return(invisible(TRUE))
+   
+   files = list.files(html_path, pattern = "\\.html$", recursive = TRUE, full.names = TRUE, ignore.case = TRUE)
+   
+   for (file in files) {
+      document = xml2::read_html(file)
+      
+      document = .normalise_structured_html_sidebar(document, project, file)
+      document = .normalise_structured_html_content(document, project, file)
+      
+      xml2::write_html(document, file)
+   }
+   
+   invisible(TRUE)
+}
+
+
+.normalise_structured_html_content = function(document, project, file) {
+   active = xml2::xml_find_first(
+      document,
+      "//*[@id='quarto-sidebar']//a[contains(concat(' ', normalize-space(@class), ' '), ' sidebar-link ') and contains(concat(' ', normalize-space(@class), ' '), ' active ')]"
+   )
+   
+   if (inherits(active, "xml_missing")) return(document)
+   
+   node = xml2::xml_find_first(active, "ancestor::li[1]")
+   if (inherits(node, "xml_missing")) return(document)
+   
+   .normalise_structured_html_content_node(document, node)
+}
+
+.normalise_structured_html_content_node = function(document, node) {
+   link = xml2::xml_find_first(
+      node,
+      "./div[contains(concat(' ', normalize-space(@class), ' '), ' sidebar-item-container ')]//a[@href] | ./a[@href]"
+   )
+   
+   if (!inherits(link, "xml_missing")) {
+      chapter_number_node = xml2::xml_find_first(
+         link,
+         ".//span[contains(concat(' ', normalize-space(@class), ' '), ' chapter-number ')]"
+      )
+      
+      section_number_node = xml2::xml_find_first(
+         link,
+         ".//span[contains(concat(' ', normalize-space(@class), ' '), ' header-section-number ')]"
+      )
+      
+      if (!inherits(chapter_number_node, "xml_missing")) {
+         number = trimws(xml2::xml_text(chapter_number_node))
+         
+         target_number_node = xml2::xml_find_first(
+            document,
+            "//*[@id='title-block-header']//h1[contains(concat(' ', normalize-space(@class), ' '), ' title ')]//span[contains(concat(' ', normalize-space(@class), ' '), ' chapter-number ')]"
+         )
+         
+         if (!inherits(target_number_node, "xml_missing")) {
+            xml2::xml_text(target_number_node) = number
+         }
+      } else if (!inherits(section_number_node, "xml_missing")) {
+         href = xml2::xml_attr(link, "href")
+         
+         if (!is.na(href) && grepl("#", href, fixed = TRUE)) {
+            id = sub("^[^#]*#", "", href)
+            id = utils::URLdecode(id)
+            number = trimws(xml2::xml_text(section_number_node))
+            
+            document = .normalise_structured_html_content_section(
+               document = document,
+               id = id,
+               number = number
+            )
+         }
+      }
+   }
+   
+   children = xml2::xml_find_first(
+      node,
+      "./ul[contains(concat(' ', normalize-space(@class), ' '), ' sidebar-section ')]"
+   )
+   
+   if (!inherits(children, "xml_missing")) {
+      items = xml2::xml_find_all(children, "./li")
+      
+      for (item in items) {
+         document = .normalise_structured_html_content_node(
+            document = document,
+            node = item
+         )
+      }
+   }
+   
+   document
+}
+
+.normalise_structured_html_content_section = function(document, id, number) {
+   candidates = xml2::xml_find_all(document, "//main//*[@id]")
+   if (!length(candidates)) return(document)
+   
+   ids = xml2::xml_attr(candidates, "id")
+   index = which(ids == id)
+   if (!length(index)) return(document)
+   
+   section = candidates[[index[[1L]]]]
+   heading = xml2::xml_find_first(section, "./h1 | ./h2 | ./h3 | ./h4 | ./h5 | ./h6")
+   if (inherits(heading, "xml_missing")) return(document)
+   
+   number_node = xml2::xml_find_first(
+      heading,
+      ".//span[contains(concat(' ', normalize-space(@class), ' '), ' header-section-number ')]"
+   )
+   
+   if (!inherits(number_node, "xml_missing")) {
+      xml2::xml_text(number_node) = number
+   }
+   
+   document
+}
+
+.normalise_structured_html_sidebar = function(document, project, file) {
+   document = .normalise_structured_html_sidebar_structure(document, project)
+   
+   parts = xml2::xml_find_all(
+      document,
+      "//*[@id='quarto-sidebar']//li[contains(concat(' ', normalize-space(@class), ' '), ' sidebar-item-section ')]"
+   )
+   
+   for (part in parts) {
+      chapters = xml2::xml_find_all(
+         part,
+         "./ul[contains(concat(' ', normalize-space(@class), ' '), ' sidebar-section ')]/li"
+      )
+      
+      for (chapter in chapters) {
+         .normalise_structured_html_sidebar_chapter(chapter, file)
+      }
+   }
+   
+   document
+}
+
+.normalise_structured_html_sidebar_structure = function(document, project) {
+   root_number = xml2::xml_find_first(
+      document,
+      "//*[@id='quarto-sidebar']/div[contains(@class,'sidebar-menu-container')]/ul/li[not(contains(@class,'sidebar-item-section'))][1]//span[contains(@class,'chapter-number')]"
+   )
+   
+   if (!inherits(root_number, "xml_missing")) {
+      xml2::xml_remove(root_number)
+   }
+   
+   parts = xml2::xml_find_all(
+      document,
+      "//*[@id='quarto-sidebar']//li[contains(concat(' ', normalize-space(@class), ' '), ' sidebar-item-section ')]"
+   )
+   
+   for (i in seq_along(parts)) {
+      part = parts[[i]]
+      
+      title = xml2::xml_find_first(
+         part,
+         "./div[contains(concat(' ', normalize-space(@class), ' '), ' sidebar-item-container ')]//span[contains(concat(' ', normalize-space(@class), ' '), ' menu-text ')]"
+      )
+      
+      if (!inherits(title, "xml_missing")) {
+         xml2::xml_text(title) = paste(as.roman(i), xml2::xml_text(title))
+      }
+      
+      numbers = xml2::xml_find_all(
+         part,
+         "./ul[contains(concat(' ', normalize-space(@class), ' '), ' sidebar-section ')]/li//span[contains(concat(' ', normalize-space(@class), ' '), ' chapter-number ')]"
+      )
+      
+      if (length(numbers)) {
+         xml2::xml_text(numbers) = as.character(seq_along(numbers))
+      }
+   }
+   
+   document
+}
+
+.normalise_structured_html_sidebar_chapter = function(chapter, file) {
+   link = xml2::xml_find_first(chapter, ".//a[@href]")
+   if (inherits(link, "xml_missing")) return(chapter)
+
+   href = xml2::xml_attr(link, "href")
+   if (is.na(href) || !nzchar(href) || startsWith(href, "#")) return(chapter)
+
+   target_href = sub("[?#].*$", "", href)
+   target = file.path(dirname(file), utils::URLdecode(target_href))
+   if (!file.exists(target)) return(chapter)
+
+   target_document = xml2::read_html(target)
+   sections = xml2::xml_find_first(target_document, "//*[@id='TOC']/ul")
+   if (inherits(sections, "xml_missing")) return(chapter)
+
+   links = xml2::xml_find_all(sections, ".//a[@href]")
+
+   for (section_link in links) {
+      section_href = xml2::xml_attr(section_link, "href")
+
+      if (!is.na(section_href) && startsWith(section_href, "#")) {
+         xml2::xml_attr(section_link, "href") = paste0(target_href, section_href)
+      }
+   }
+
+   chapter_number_node = xml2::xml_find_first(
+      chapter,
+      ".//span[contains(concat(' ', normalize-space(@class), ' '), ' chapter-number ')]"
+   )
+
+   if (inherits(chapter_number_node, "xml_missing")) return(chapter)
+
+   chapter_number = xml2::xml_text(chapter_number_node)
+
+   section_id = paste0(
+      "iasi-sidebar-",
+      gsub("[^A-Za-z0-9_-]+", "-", target_href)
+   )
+
+   chapter_class = xml2::xml_attr(chapter, "class")
+   if (is.na(chapter_class)) chapter_class = ""
+
+   xml2::xml_attr(chapter, "class") = trimws(
+      paste(chapter_class, "sidebar-item-section")
+   )
+
+   container = xml2::xml_find_first(
+      chapter,
+      "./div[contains(concat(' ', normalize-space(@class), ' '), ' sidebar-item-container ')]"
+   )
+
+   if (inherits(container, "xml_missing")) return(chapter)
+
+   toggle = xml2::xml_add_child(container, "a")
+   xml2::xml_attr(toggle, "class") = "sidebar-item-toggle text-start collapsed"
+   xml2::xml_attr(toggle, "data-bs-toggle") = "collapse"
+   xml2::xml_attr(toggle, "data-bs-target") = paste0("#", section_id)
+   xml2::xml_attr(toggle, "role") = "navigation"
+   xml2::xml_attr(toggle, "aria-expanded") = "false"
+   xml2::xml_attr(toggle, "aria-controls") = section_id
+   xml2::xml_attr(toggle, "aria-label") = "Toggle section"
+
+   icon = xml2::xml_add_child(toggle, "i")
+   xml2::xml_attr(icon, "class") = "bi bi-chevron-right ms-2"
+
+   xml2::xml_attr(sections, "id") = section_id
+   xml2::xml_attr(sections, "class") = "collapse list-unstyled sidebar-section depth2"
+
+   sections = .normalise_structured_html_sidebar_sections(
+      sections,
+      prefix = section_id,
+      number = chapter_number,
+      depth = 2L
+   )
+
+   xml2::xml_add_child(chapter, sections, .copy = TRUE)
+
+   chapter
+}
+
+.normalise_structured_html_sidebar_sections = function(sections, prefix, number, depth) {
+   items = xml2::xml_find_all(sections, "./li")
+
+   for (i in seq_along(items)) {
+      item = items[[i]]
+      item_number = paste(number, i, sep = ".")
+
+      number_node = xml2::xml_find_first(
+         item,
+         "./a//span[contains(concat(' ', normalize-space(@class), ' '), ' header-section-number ')]"
+      )
+
+      if (!inherits(number_node, "xml_missing")) {
+         xml2::xml_text(number_node) = item_number
+      }
+
+      children = xml2::xml_find_first(item, "./ul")
+
+      if (inherits(children, "xml_missing")) next
+
+      id = paste0(prefix, "-", i)
+
+      item_class = xml2::xml_attr(item, "class")
+      if (is.na(item_class)) item_class = ""
+
+      xml2::xml_attr(item, "class") = trimws(
+         paste(item_class, "sidebar-item-section")
+      )
+
+      toggle = xml2::xml_add_child(item, "a")
+      xml2::xml_attr(toggle, "class") = "sidebar-item-toggle text-start collapsed"
+      xml2::xml_attr(toggle, "data-bs-toggle") = "collapse"
+      xml2::xml_attr(toggle, "data-bs-target") = paste0("#", id)
+      xml2::xml_attr(toggle, "role") = "navigation"
+      xml2::xml_attr(toggle, "aria-expanded") = "false"
+      xml2::xml_attr(toggle, "aria-controls") = id
+      xml2::xml_attr(toggle, "aria-label") = "Toggle section"
+
+      icon = xml2::xml_add_child(toggle, "i")
+      xml2::xml_attr(icon, "class") = "bi bi-chevron-right ms-2"
+
+      xml2::xml_attr(children, "id") = id
+      xml2::xml_attr(children, "class") = paste0(
+         "collapse list-unstyled sidebar-section depth",
+         depth + 1L
+      )
+
+      children = .normalise_structured_html_sidebar_sections(
+         children,
+         prefix = id,
+         number = item_number,
+         depth = depth + 1L
+      )
+   }
+
+   sections
 }

@@ -67,6 +67,14 @@ build = function(book = NULL, format = NULL, path = ".") {
     use.names = FALSE
   ))
 
+  plan$projects = lapply(
+    plan$projects,
+    function(project) {
+      .record_build_state(project)
+      project
+    }
+  )
+
   plan$elapsed = as.numeric(
     difftime(
       Sys.time(),

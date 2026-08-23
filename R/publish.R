@@ -42,7 +42,20 @@ publish = function(book = NULL, source = "_outputs", path = ".") {
   else plan = .publish_multiproject(plan, source)
 
   plan$published = all(vapply(plan$projects, function(project) isTRUE(project$published), logical(1)))
+
+  plan$projects = lapply(
+    plan$projects,
+    function(project) {
+      .record_publish_state(
+        project,
+        source = source
+      )
+      project
+    }
+  )
+
   plan$elapsed = as.numeric(difftime(Sys.time(), started_at, units = "secs"))
+  
   .report_publish(plan)
   invisible(plan)
 }

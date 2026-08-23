@@ -2,25 +2,36 @@
 % Please edit documentation in R/deploy.R
 \name{deploy}
 \alias{deploy}
-\title{Build and publish IASI Quarto publications}
+\title{Build and publish IASI Quarto publications only when required}
 \usage{
-deploy()
+deploy(book = NULL, format = NULL, path = ".")
+}
+\arguments{
+\item{book}{Publication or publications to deploy. Uses the same selection
+rules as \code{\link[=build]{build()}} and \code{\link[=publish]{publish()}}.}
+
+\item{format}{Output format or formats to keep current. Uses the same
+selection rules as \code{\link[=build]{build()}}.}
+
+\item{path}{IASI Quarto publication or multiproject directory.}
 }
 \value{
-Invisibly returns the result of \code{\link[=publish]{publish()}}. Returns \code{NULL} when
-\code{\link[=build]{build()}} does not find an IASI Quarto workspace.
+Invisibly returns the plan produced by the last operation executed.
+When no build or publish is required, returns the checked deployment plan.
+Returns \code{NULL} when \code{path} does not appear to be an IASI Quarto workspace.
 }
 \description{
-Runs \code{\link[=build]{build()}} followed by \code{\link[=publish]{publish()}} as a single deployment operation.
+Deploys IASI Quarto publications incrementally. Each publication keeps its
+operational state in \code{.iasi/quarto/state.yml}. Source and build output
+fingerprints are used to decide whether deployment needs a new build, only
+a publish, or no work at all.
 }
 \details{
-\code{deploy()} is intended for the moment when the current sources are ready to
-become the published artifact. During normal authoring, \code{\link[=build]{build()}} can be used
-independently to generate and inspect the outputs without modifying
-\verb{publish/}.
-
-\code{\link[=publish]{publish()}} is only executed when \code{\link[=build]{build()}} completes successfully. If the
-build fails, the existing \verb{publish/} directory is left untouched.
+A build is required when the current sources no longer match the state
+recorded for one or more selected formats, or when \verb{_outputs/} has drifted
+from the output produced by the last build. After a successful build,
+\code{publish()} is only run when the resulting output fingerprint differs from
+the one already published.
 }
 \examples{
 \dontrun{
