@@ -17,12 +17,15 @@
 #'   `"all"` or `NULL` for the default friendly set: HTML, PDF, EPUB, DOC,
 #'   and Git.
 #' @param path IASI Quarto publication or multiproject directory.
+#' @param force Explicitly requests a complete build. `build()` already runs
+#'   the selected build pipeline unconditionally; this argument is provided so
+#'   callers can propagate a common force policy. Defaults to `FALSE`.
 #'
 #' @return Invisibly returns the completed `iasi_quarto_plan`. Returns `NULL`
 #'   when `path` does not appear to be an IASI Quarto workspace.
 #'
 #' @export
-build = function(book = NULL, format = NULL, path = ".") {
+build = function(book = NULL, format = NULL, path = ".", force = FALSE) {
   started_at = Sys.time()
 
   quiet_missing = identical(.normalise_build_selection(format, "format"), "all")

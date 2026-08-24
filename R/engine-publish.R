@@ -235,6 +235,7 @@
    .normalise_publish_tree(destination, project, formats)
 
    .move_publish_html_to_root(destination)
+   .normalise_publish_exports(destination)
    .sync_export_anchors(destination)
    .write_publish_timestamp(destination)
 
@@ -369,6 +370,20 @@
   }
 
   unlink(html, recursive = TRUE, force = TRUE)
+  invisible(TRUE)
+}
+
+.normalise_publish_exports = function(path) {
+  exports = file.path(path, "exports.json")
+  if (!file.exists(exports)) return(invisible(TRUE))
+
+  content = readLines(exports, warn = FALSE, encoding = "UTF-8")
+  normalised = gsub('"href": "../', '"href": "', content, fixed = TRUE)
+
+  if (!identical(content, normalised)) {
+    writeLines(normalised, exports, useBytes = TRUE)
+  }
+
   invisible(TRUE)
 }
 

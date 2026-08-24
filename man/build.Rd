@@ -4,7 +4,7 @@
 \alias{build}
 \title{Build IASI Quarto publications}
 \usage{
-build(book = NULL, format = NULL, path = ".")
+build(book = NULL, format = NULL, path = ".", force = FALSE)
 }
 \arguments{
 \item{book}{Publication or publications to build. A publication can be
@@ -18,6 +18,10 @@ publication. This argument is ignored when \code{path} is itself a publication.}
 and Git.}
 
 \item{path}{IASI Quarto publication or multiproject directory.}
+
+\item{force}{Explicitly requests a complete build. \code{build()} already runs
+the selected build pipeline unconditionally; this argument is provided so
+callers can propagate a common force policy. Defaults to \code{FALSE}.}
 }
 \value{
 Invisibly returns the completed \code{iasi_quarto_plan}. Returns \code{NULL}

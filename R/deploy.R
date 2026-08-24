@@ -17,6 +17,9 @@
 #' @param format Output format or formats to keep current. Uses the same
 #'   selection rules as [build()].
 #' @param path IASI Quarto publication or multiproject directory.
+#' @param force When `TRUE`, skips build/publish freshness decisions and runs
+#'   both operations for every selected publication. Validation and execution
+#'   errors are still enforced. Defaults to `FALSE`.
 #'
 #' @return Invisibly returns the plan produced by the last operation executed.
 #'   When no build or publish is required, returns the checked deployment plan.
@@ -30,7 +33,7 @@
 #' }
 #'
 #' @export
-deploy = function(book = NULL, format = NULL, path = ".") {
+deploy = function(book = NULL, format = NULL, path = ".", force = FALSE) {
   quiet_missing = identical(
     .normalise_build_selection(
       format,
@@ -65,7 +68,7 @@ deploy = function(book = NULL, format = NULL, path = ".") {
   for (i in seq_along(plan$projects)) {
     project = plan$projects[[i]]
 
-    build_required = .build_required(
+    build_required = isTRUE(force) || .build_required(
       project,
       formats = formats,
       quiet_missing = quiet_missing
@@ -74,7 +77,8 @@ deploy = function(book = NULL, format = NULL, path = ".") {
     if (build_required) {
       build_result = build(
         format = format,
-        path = project$path
+        path = project$path,
+        force = force
       )
 
       if (is.null(build_result)) {
@@ -86,13 +90,14 @@ deploy = function(book = NULL, format = NULL, path = ".") {
       built = built + 1L
     }
 
-    publish_required = .publish_required(project)
+    publish_required = isTRUE(force) || .publish_required(project)
 
     if (publish_required) {
 
       if (isTRUE(plan$current)) {
         publish_result = publish(
-          path = project$path
+          path = project$path,
+          force = force
         )
 
         if (is.null(publish_result)) {

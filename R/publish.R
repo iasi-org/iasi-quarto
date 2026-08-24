@@ -21,12 +21,16 @@
 #' @param source Output directory to copy, relative to each publication root by
 #'   default. Absolute paths are also accepted. Defaults to `_outputs`.
 #' @param path IASI Quarto publication or multiproject directory.
+#' @param force Explicitly requests a complete publication pass. `publish()`
+#'   already republishes the selected output unconditionally; this argument is
+#'   provided so callers can propagate a common force policy. Defaults to
+#'   `FALSE`.
 #'
 #' @return Invisibly returns the completed `iasi_quarto_plan`. Returns `NULL`
 #'   when `path` does not appear to be an IASI Quarto workspace.
 #'
 #' @export
-publish = function(book = NULL, source = "_outputs", path = ".") {
+publish = function(book = NULL, source = "_outputs", path = ".", force = FALSE) {
   started_at = Sys.time()
   plan = validate(path)
   if (is.null(plan)) return(invisible(NULL))

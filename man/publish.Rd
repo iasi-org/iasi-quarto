@@ -4,7 +4,7 @@
 \alias{publish}
 \title{Prepare IASI Quarto outputs for deployment}
 \usage{
-publish(book = NULL, source = "_outputs", path = ".")
+publish(book = NULL, source = "_outputs", path = ".", force = FALSE)
 }
 \arguments{
 \item{book}{Publication or publications to publish. A publication can be
@@ -16,6 +16,11 @@ publication. This argument is ignored when \code{path} is itself a publication.}
 default. Absolute paths are also accepted. Defaults to \verb{_outputs}.}
 
 \item{path}{IASI Quarto publication or multiproject directory.}
+
+\item{force}{Explicitly requests a complete publication pass. \code{publish()}
+already republishes the selected output unconditionally; this argument is
+provided so callers can propagate a common force policy. Defaults to
+\code{FALSE}.}
 }
 \value{
 Invisibly returns the completed \code{iasi_quarto_plan}. Returns \code{NULL}

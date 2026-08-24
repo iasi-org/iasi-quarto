@@ -4,7 +4,7 @@
 \alias{deploy}
 \title{Build and publish IASI Quarto publications only when required}
 \usage{
-deploy(book = NULL, format = NULL, path = ".")
+deploy(book = NULL, format = NULL, path = ".", force = FALSE)
 }
 \arguments{
 \item{book}{Publication or publications to deploy. Uses the same selection
@@ -14,6 +14,10 @@ rules as \code{\link[=build]{build()}} and \code{\link[=publish]{publish()}}.}
 selection rules as \code{\link[=build]{build()}}.}
 
 \item{path}{IASI Quarto publication or multiproject directory.}
+
+\item{force}{When \code{TRUE}, skips build/publish freshness decisions and runs
+both operations for every selected publication. Validation and execution
+errors are still enforced. Defaults to \code{FALSE}.}
 }
 \value{
 Invisibly returns the plan produced by the last operation executed.
