@@ -34,6 +34,8 @@ build = function(book = NULL, format = NULL, path = ".") {
     return(invisible(NULL))
   }
 
+  message("Construyendo...")
+
   plan = .select_build_books(
     plan = plan,
     book = book

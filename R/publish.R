@@ -31,6 +31,8 @@ publish = function(book = NULL, source = "_outputs", path = ".") {
   plan = validate(path)
   if (is.null(plan)) return(invisible(NULL))
 
+  message("Publicando...")
+
   plan = .select_build_books(plan, book)
   plan = .discover(plan)
   plan = .check(plan)

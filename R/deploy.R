@@ -71,18 +71,7 @@ deploy = function(book = NULL, format = NULL, path = ".") {
       quiet_missing = quiet_missing
     )
 
-    message(sprintf(
-      "DEBUG deploy | project = %s | build_required = %s",
-      project$name,
-      build_required
-    ))
-
     if (build_required) {
-      message(sprintf(
-        "DEBUG deploy | project = %s | build = RUN",
-        project$name
-      ))
-
       build_result = build(
         format = format,
         path = project$path
@@ -95,26 +84,11 @@ deploy = function(book = NULL, format = NULL, path = ".") {
       project = build_result$projects[[1L]]
       result = build_result
       built = built + 1L
-    } else {
-      message(sprintf(
-        "DEBUG deploy | project = %s | build = SKIP",
-        project$name
-      ))
     }
 
     publish_required = .publish_required(project)
 
-    message(sprintf(
-      "DEBUG deploy | project = %s | publish_required = %s",
-      project$name,
-      publish_required
-    ))
-
     if (publish_required) {
-      message(sprintf(
-        "DEBUG deploy | project = %s | publish = RUN",
-        project$name
-      ))
 
       if (isTRUE(plan$current)) {
         publish_result = publish(
@@ -157,11 +131,6 @@ deploy = function(book = NULL, format = NULL, path = ".") {
       }
 
       published = published + 1L
-    } else {
-      message(sprintf(
-        "DEBUG deploy | project = %s | publish = SKIP",
-        project$name
-      ))
     }
 
     plan$projects[[i]] = project
