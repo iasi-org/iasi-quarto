@@ -21,17 +21,18 @@ When no build or publish is required, returns the checked deployment plan.
 Returns \code{NULL} when \code{path} does not appear to be an IASI Quarto workspace.
 }
 \description{
-Deploys IASI Quarto publications incrementally. Each publication keeps its
-operational state in \code{.iasi/quarto/state.yml}. Source and build output
-fingerprints are used to decide whether deployment needs a new build, only
-a publish, or no work at all.
+Deploys IASI Quarto publications incrementally, one publication at a time.
+Each publication keeps its operational state in \code{.iasi/quarto/state.yml}.
+Source and build output fingerprints are used independently for every
+selected publication to decide whether it needs a build, a publish, both,
+or no work at all.
 }
 \details{
-A build is required when the current sources no longer match the state
-recorded for one or more selected formats, or when \verb{_outputs/} has drifted
-from the output produced by the last build. After a successful build,
-\code{publish()} is only run when the resulting output fingerprint differs from
-the one already published.
+For each publication, \code{deploy()} first checks whether a build is required.
+After any required build completes, it checks the resulting output again and
+publishes only that publication when its output differs from the last
+published output. This keeps build and publish decisions local to each
+publication instead of batching all builds before all publishes.
 }
 \examples{
 \dontrun{

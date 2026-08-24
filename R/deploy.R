@@ -1,15 +1,16 @@
 #' Build and publish IASI Quarto publications only when required
 #'
-#' Deploys IASI Quarto publications incrementally. Each publication keeps its
-#' operational state in `.iasi/quarto/state.yml`. Source and build output
-#' fingerprints are used to decide whether deployment needs a new build, only
-#' a publish, or no work at all.
+#' Deploys IASI Quarto publications incrementally, one publication at a time.
+#' Each publication keeps its operational state in `.iasi/quarto/state.yml`.
+#' Source and build output fingerprints are used independently for every
+#' selected publication to decide whether it needs a build, a publish, both,
+#' or no work at all.
 #'
-#' A build is required when the current sources no longer match the state
-#' recorded for one or more selected formats, or when `_outputs/` has drifted
-#' from the output produced by the last build. After a successful build,
-#' `publish()` is only run when the resulting output fingerprint differs from
-#' the one already published.
+#' For each publication, `deploy()` first checks whether a build is required.
+#' After any required build completes, it checks the resulting output again and
+#' publishes only that publication when its output differs from the last
+#' published output. This keeps build and publish decisions local to each
+#' publication instead of batching all builds before all publishes.
 #'
 #' @param book Publication or publications to deploy. Uses the same selection
 #'   rules as [build()] and [publish()].
@@ -46,6 +47,8 @@ deploy = function(book = NULL, format = NULL, path = ".") {
     return(invisible(NULL))
   }
 
+  workspace_books = plan$books
+
   plan = .select_build_books(
     plan = plan,
     book = book
@@ -55,67 +58,116 @@ deploy = function(book = NULL, format = NULL, path = ".") {
   plan = .check(plan)
   .assert_checked_plan(plan)
 
-  build_required = vapply(
-    plan$projects,
-    .build_required,
-    logical(1),
-    formats = formats,
-    quiet_missing = quiet_missing
-  )
-
-  message(sprintf(
-    "DEBUG deploy | build_required = %s",
-    paste(build_required, collapse = ", ")
-  ))
-
   result = plan
+  built = 0L
+  published = 0L
 
-  if (any(build_required)) {
-    if (isTRUE(plan$current)) {
-      result = build(
-        format = format,
-        path = plan$path
-      )
-    } else {
-      selected = plan$projects[build_required]
-      selected_books = vapply(
-        selected,
-        function(project) {
-          .relative_path(
-            project$path,
-            plan$path
-          )
-        },
-        character(1)
-      )
+  for (i in seq_along(plan$projects)) {
+    project = plan$projects[[i]]
 
-      result = build(
-        book = selected_books,
-        format = format,
-        path = plan$path
-      )
-    }
-  }
-
-  publish_required = any(vapply(
-    plan$projects,
-    .publish_required,
-    logical(1)
-  ))
-
-  message(sprintf(
-    "DEBUG deploy | publish_required = %s",
-    publish_required
-  ))
-
-  if (publish_required) {
-    result = publish(
-      book = book,
-      path = plan$path
+    build_required = .build_required(
+      project,
+      formats = formats,
+      quiet_missing = quiet_missing
     )
+
+    message(sprintf(
+      "DEBUG deploy | project = %s | build_required = %s",
+      project$name,
+      build_required
+    ))
+
+    if (build_required) {
+      message(sprintf(
+        "DEBUG deploy | project = %s | build = RUN",
+        project$name
+      ))
+
+      build_result = build(
+        format = format,
+        path = project$path
+      )
+
+      if (is.null(build_result)) {
+        return(invisible(NULL))
+      }
+
+      project = build_result$projects[[1L]]
+      result = build_result
+      built = built + 1L
+    } else {
+      message(sprintf(
+        "DEBUG deploy | project = %s | build = SKIP",
+        project$name
+      ))
+    }
+
+    publish_required = .publish_required(project)
+
+    message(sprintf(
+      "DEBUG deploy | project = %s | publish_required = %s",
+      project$name,
+      publish_required
+    ))
+
+    if (publish_required) {
+      message(sprintf(
+        "DEBUG deploy | project = %s | publish = RUN",
+        project$name
+      ))
+
+      if (isTRUE(plan$current)) {
+        publish_result = publish(
+          path = project$path
+        )
+
+        if (is.null(publish_result)) {
+          return(invisible(NULL))
+        }
+
+        project = publish_result$projects[[1L]]
+        result = publish_result
+      } else {
+        started_at = Sys.time()
+
+        project = .publish_deploy_project(
+          project = project,
+          root = plan$path,
+          books = workspace_books
+        )
+
+        project = .record_publish_state(project)
+
+        publish_result = plan
+        publish_result$projects = list(project)
+        publish_result$published = isTRUE(project$published)
+        publish_result$publish_path = .normalise_project_path(
+          file.path(plan$path, "publish")
+        )
+        publish_result$elapsed = as.numeric(
+          difftime(
+            Sys.time(),
+            started_at,
+            units = "secs"
+          )
+        )
+
+        .report_publish(publish_result)
+        result = publish_result
+      }
+
+      published = published + 1L
+    } else {
+      message(sprintf(
+        "DEBUG deploy | project = %s | publish = SKIP",
+        project$name
+      ))
+    }
+
+    plan$projects[[i]] = project
   }
 
-  if (!any(build_required) && !publish_required) {
+  if (built == 0L && published == 0L) {
     message("")
     message("IASI Quarto deploy")
     message("------------------")
@@ -124,11 +176,14 @@ deploy = function(book = NULL, format = NULL, path = ".") {
       "Projects: %d",
       length(plan$projects)
     ))
-  } else if (any(build_required) && !publish_required) {
+  } else {
     message("")
     message("IASI Quarto deploy")
     message("------------------")
-    message("Publish : skipped; build output unchanged")
+    message("Status   : COMPLETED")
+    message(sprintf("Projects : %d", length(plan$projects)))
+    message(sprintf("Built    : %d", built))
+    message(sprintf("Published: %d", published))
   }
 
   invisible(result)

@@ -5,6 +5,154 @@
   .publish_project_to(project, source, destination, clean = TRUE)
 }
 
+.publish_deploy_project = function(project,
+                                    root,
+                                    books,
+                                    source = "_outputs") {
+  publish_path = file.path(root, "publish")
+  prefix = .numbered_prefix(project$path)
+  slug = sub("^[0-9]+-", "", basename(project$path))
+
+  book_slugs = sub("^[0-9]+-", "", basename(books))
+
+  if (anyDuplicated(book_slugs)) {
+    stop(
+      "Publication names are not unique after removing numeric prefixes.",
+      call. = FALSE
+    )
+  }
+
+  if (!identical(prefix, 0L)) {
+    destination = file.path(publish_path, slug)
+
+    dir.create(
+      publish_path,
+      recursive = TRUE,
+      showWarnings = FALSE
+    )
+
+    project = .publish_project_to(
+      project,
+      source,
+      destination,
+      clean = TRUE
+    )
+
+    file.create(
+      file.path(publish_path, ".nojekyll")
+    )
+
+    .write_publish_timestamp(publish_path)
+
+    return(project)
+  }
+
+  work_path = paste0(
+    publish_path,
+    ".work"
+  )
+
+  if (dir.exists(work_path)) {
+    unlink(
+      work_path,
+      recursive = TRUE,
+      force = TRUE
+    )
+  }
+
+  dir.create(
+    work_path,
+    recursive = TRUE,
+    showWarnings = FALSE
+  )
+
+  completed = FALSE
+
+  on.exit(
+    if (!completed && dir.exists(work_path)) {
+      unlink(
+        work_path,
+        recursive = TRUE,
+        force = TRUE
+      )
+    },
+    add = TRUE
+  )
+
+  project = .publish_project_to(
+    project,
+    source,
+    work_path,
+    clean = FALSE
+  )
+
+  sibling_books = books[
+    normalizePath(
+      books,
+      winslash = "/",
+      mustWork = TRUE
+    ) != normalizePath(
+      project$path,
+      winslash = "/",
+      mustWork = TRUE
+    )
+  ]
+
+  sibling_slugs = sub(
+    "^[0-9]+-",
+    "",
+    basename(sibling_books)
+  )
+
+  for (sibling_slug in sibling_slugs) {
+    existing = file.path(
+      publish_path,
+      sibling_slug
+    )
+
+    if (!dir.exists(existing)) {
+      next
+    }
+
+    preserved = file.path(
+      work_path,
+      sibling_slug
+    )
+
+    if (dir.exists(preserved) || file.exists(preserved)) {
+      stop(
+        sprintf(
+          "Landing publication collides with publication directory '%s'.",
+          sibling_slug
+        ),
+        call. = FALSE
+      )
+    }
+
+    dir.create(
+      preserved,
+      recursive = TRUE,
+      showWarnings = FALSE
+    )
+
+    .copy_directory_contents(
+      existing,
+      preserved
+    )
+  }
+
+  file.create(
+    file.path(work_path, ".nojekyll")
+  )
+
+  .write_publish_timestamp(work_path)
+  .replace_publish_tree(work_path, publish_path)
+  completed = TRUE
+
+  project$publish_path = .normalise_project_path(publish_path)
+  project
+}
+
 .publish_numbered_project = function(plan, source = "_outputs") {
   project = plan$projects[[1L]]
   publish_path = file.path(dirname(plan$path), "publish")
