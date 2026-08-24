@@ -82,68 +82,25 @@
 
 .prepare_publish_tree = function(source, destination, project) {
    .copy_directory_contents(source, destination)
-   
+
    formats = .published_directories(destination)
    .normalise_publish_tree(destination, project, formats)
-   
+
    .move_publish_html_to_root(destination)
    .sync_export_anchors(destination)
    .write_publish_timestamp(destination)
-   
+
    invisible(TRUE)
 }
 
 .replace_publish_tree = function(work, destination) {
-  .make_publish_public(work)
-
   if (dir.exists(destination)) {
-    .make_publish_public(destination)
     unlink(destination, recursive = TRUE, force = TRUE)
   }
 
   if (!file.rename(work, destination)) {
     stop(sprintf("Could not replace publish directory '%s'.", destination), call. = FALSE)
   }
-
-  invisible(TRUE)
-}
-
-.make_publish_public = function(path) {
-  if (!dir.exists(path)) {
-    stop(sprintf("Publish directory does not exist: %s.", path), call. = FALSE)
-  }
-
-  if (.Platform$OS.type == "windows") {
-    path = normalizePath(path, winslash = "\\", mustWork = TRUE)
-
-    status = system2(
-      "icacls.exe",
-      args = c(
-        shQuote(path),
-        "/inheritance:e",
-        "/grant",
-        shQuote("*S-1-5-32-545:(OI)(CI)M"),
-        "/T",
-        "/C",
-        "/Q"
-      ),
-      stdout = FALSE,
-      stderr = FALSE
-    )
-
-    if (!identical(status, 0L)) {
-      stop(sprintf("Could not make publish directory public: %s.", path), call. = FALSE)
-    }
-
-    return(invisible(TRUE))
-  }
-
-  directories = c(path, list.dirs(path, recursive = TRUE, full.names = TRUE))
-  files = list.files(path, recursive = TRUE, full.names = TRUE, all.files = TRUE, no.. = TRUE)
-  files = files[!dir.exists(files)]
-
-  Sys.chmod(directories, mode = "0775", use_umask = FALSE)
-  if (length(files)) Sys.chmod(files, mode = "0664", use_umask = FALSE)
 
   invisible(TRUE)
 }
@@ -282,14 +239,14 @@
    writeLines(stamp, file.path(path, ".publish"), useBytes = TRUE)
    publish_date = format(as.Date(substr(stamp, 1L, 10L)), "%d/%m/%Y")
    version = NULL
-   
+
    if (!is.null(project_path)) {
       iasi_path = file.path(project_path, "_iasi.yml")
-      
+
       if (file.exists(iasi_path)) {
          iasi = yaml::read_yaml(iasi_path)
          version = iasi$version
-         
+
          if ( is.null(version) ||
              !length(version) ||
              !nzchar(as.character(version))) {
@@ -297,28 +254,28 @@
          }
       }
    }
-   
+
    text = if (is.null(version)) {
       sprintf("Publicado: %s", publish_date)
    } else {
       sprintf("v%s · Publicado: %s", as.character(version), publish_date)
    }
-   
+
    files = list.files(path, pattern = "\\.html$", recursive = TRUE, full.names = TRUE, ignore.case = TRUE)
-   
+
    placeholder = '<span id="iasi-publish-date"></span>'
    replacement = sprintf('<span id="iasi-publish-date">%s</span>',text)
-   
+
    for (file in files) {
       html = paste(
          readLines(file, warn = FALSE, encoding = "UTF-8"), collapse = "\n")
-      
+
       if (!grepl(placeholder, html, fixed = TRUE)) next
-      
+
       html = gsub(placeholder, replacement, html, fixed = TRUE)
       writeLines(html, file, useBytes = TRUE)
    }
-   
+
    invisible(TRUE)
 }
 .report_publish = function(plan) {
@@ -343,44 +300,44 @@
 
 .normalise_publish_tree = function(path, project, formats) {
    name = paste0(".normalise_", project$strategy)
-   
+
    if (!exists(name, mode = "function")) return(invisible(TRUE))
-   
+
    fn = get(name, mode = "function")
    fn(path = path, project = project, formats = formats)
-   
+
    invisible(TRUE)
 }
 
 .normalise_structured = function(path, project, formats) {
    for (format in formats) {
       name = paste0(".normalise_structured_", format)
-      
+
       if (!exists(name, mode = "function")) next
-      
+
       fn = get(name, mode = "function")
       fn(path = path, project = project)
    }
-   
+
    invisible(TRUE)
 }
 
 .normalise_structured_html = function(path, project) {
    html_path = file.path(path, "html")
-   
+
    if (!dir.exists(html_path)) return(invisible(TRUE))
-   
+
    files = list.files(html_path, pattern = "\\.html$", recursive = TRUE, full.names = TRUE, ignore.case = TRUE)
-   
+
    for (file in files) {
       document = xml2::read_html(file)
-      
+
       document = .normalise_structured_html_sidebar(document, project, file)
       document = .normalise_structured_html_content(document, project, file)
-      
+
       xml2::write_html(document, file)
    }
-   
+
    invisible(TRUE)
 }
 
@@ -390,12 +347,12 @@
       document,
       "//*[@id='quarto-sidebar']//a[contains(concat(' ', normalize-space(@class), ' '), ' sidebar-link ') and contains(concat(' ', normalize-space(@class), ' '), ' active ')]"
    )
-   
+
    if (inherits(active, "xml_missing")) return(document)
-   
+
    node = xml2::xml_find_first(active, "ancestor::li[1]")
    if (inherits(node, "xml_missing")) return(document)
-   
+
    .normalise_structured_html_content_node(document, node)
 }
 
@@ -404,37 +361,37 @@
       node,
       "./div[contains(concat(' ', normalize-space(@class), ' '), ' sidebar-item-container ')]//a[@href] | ./a[@href]"
    )
-   
+
    if (!inherits(link, "xml_missing")) {
       chapter_number_node = xml2::xml_find_first(
          link,
          ".//span[contains(concat(' ', normalize-space(@class), ' '), ' chapter-number ')]"
       )
-      
+
       section_number_node = xml2::xml_find_first(
          link,
          ".//span[contains(concat(' ', normalize-space(@class), ' '), ' header-section-number ')]"
       )
-      
+
       if (!inherits(chapter_number_node, "xml_missing")) {
          number = trimws(xml2::xml_text(chapter_number_node))
-         
+
          target_number_node = xml2::xml_find_first(
             document,
             "//*[@id='title-block-header']//h1[contains(concat(' ', normalize-space(@class), ' '), ' title ')]//span[contains(concat(' ', normalize-space(@class), ' '), ' chapter-number ')]"
          )
-         
+
          if (!inherits(target_number_node, "xml_missing")) {
             xml2::xml_text(target_number_node) = number
          }
       } else if (!inherits(section_number_node, "xml_missing")) {
          href = xml2::xml_attr(link, "href")
-         
+
          if (!is.na(href) && grepl("#", href, fixed = TRUE)) {
             id = sub("^[^#]*#", "", href)
             id = utils::URLdecode(id)
             number = trimws(xml2::xml_text(section_number_node))
-            
+
             document = .normalise_structured_html_content_section(
                document = document,
                id = id,
@@ -443,15 +400,15 @@
          }
       }
    }
-   
+
    children = xml2::xml_find_first(
       node,
       "./ul[contains(concat(' ', normalize-space(@class), ' '), ' sidebar-section ')]"
    )
-   
+
    if (!inherits(children, "xml_missing")) {
       items = xml2::xml_find_all(children, "./li")
-      
+
       for (item in items) {
          document = .normalise_structured_html_content_node(
             document = document,
@@ -459,53 +416,53 @@
          )
       }
    }
-   
+
    document
 }
 
 .normalise_structured_html_content_section = function(document, id, number) {
    candidates = xml2::xml_find_all(document, "//main//*[@id]")
    if (!length(candidates)) return(document)
-   
+
    ids = xml2::xml_attr(candidates, "id")
    index = which(ids == id)
    if (!length(index)) return(document)
-   
+
    section = candidates[[index[[1L]]]]
    heading = xml2::xml_find_first(section, "./h1 | ./h2 | ./h3 | ./h4 | ./h5 | ./h6")
    if (inherits(heading, "xml_missing")) return(document)
-   
+
    number_node = xml2::xml_find_first(
       heading,
       ".//span[contains(concat(' ', normalize-space(@class), ' '), ' header-section-number ')]"
    )
-   
+
    if (!inherits(number_node, "xml_missing")) {
       xml2::xml_text(number_node) = number
    }
-   
+
    document
 }
 
 .normalise_structured_html_sidebar = function(document, project, file) {
    document = .normalise_structured_html_sidebar_structure(document, project)
-   
+
    parts = xml2::xml_find_all(
       document,
       "//*[@id='quarto-sidebar']//li[contains(concat(' ', normalize-space(@class), ' '), ' sidebar-item-section ')]"
    )
-   
+
    for (part in parts) {
       chapters = xml2::xml_find_all(
          part,
          "./ul[contains(concat(' ', normalize-space(@class), ' '), ' sidebar-section ')]/li"
       )
-      
+
       for (chapter in chapters) {
          .normalise_structured_html_sidebar_chapter(chapter, file)
       }
    }
-   
+
    document
 }
 
@@ -514,38 +471,38 @@
       document,
       "//*[@id='quarto-sidebar']/div[contains(@class,'sidebar-menu-container')]/ul/li[not(contains(@class,'sidebar-item-section'))][1]//span[contains(@class,'chapter-number')]"
    )
-   
+
    if (!inherits(root_number, "xml_missing")) {
       xml2::xml_remove(root_number)
    }
-   
+
    parts = xml2::xml_find_all(
       document,
       "//*[@id='quarto-sidebar']//li[contains(concat(' ', normalize-space(@class), ' '), ' sidebar-item-section ')]"
    )
-   
+
    for (i in seq_along(parts)) {
       part = parts[[i]]
-      
+
       title = xml2::xml_find_first(
          part,
          "./div[contains(concat(' ', normalize-space(@class), ' '), ' sidebar-item-container ')]//span[contains(concat(' ', normalize-space(@class), ' '), ' menu-text ')]"
       )
-      
+
       if (!inherits(title, "xml_missing")) {
          xml2::xml_text(title) = paste(as.roman(i), xml2::xml_text(title))
       }
-      
+
       numbers = xml2::xml_find_all(
          part,
          "./ul[contains(concat(' ', normalize-space(@class), ' '), ' sidebar-section ')]/li//span[contains(concat(' ', normalize-space(@class), ' '), ' chapter-number ')]"
       )
-      
+
       if (length(numbers)) {
          xml2::xml_text(numbers) = as.character(seq_along(numbers))
       }
    }
-   
+
    document
 }
 

@@ -63,6 +63,11 @@ deploy = function(book = NULL, format = NULL, path = ".") {
     quiet_missing = quiet_missing
   )
 
+  message(sprintf(
+    "DEBUG deploy | build_required = %s",
+    paste(build_required, collapse = ", ")
+  ))
+
   result = plan
 
   if (any(build_required)) {
@@ -96,6 +101,11 @@ deploy = function(book = NULL, format = NULL, path = ".") {
     plan$projects,
     .publish_required,
     logical(1)
+  ))
+
+  message(sprintf(
+    "DEBUG deploy | publish_required = %s",
+    publish_required
   ))
 
   if (publish_required) {
