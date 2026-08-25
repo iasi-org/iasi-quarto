@@ -13,9 +13,9 @@ prefix, or its numeric prefix. Use \code{"all"} or \code{NULL} to build every
 publication. This argument is ignored when \code{path} is itself a publication.}
 
 \item{format}{Output format or formats. Supported values are \code{"html"},
-\code{"pdf"}, \code{"typst"}, \code{"epub"}, \code{"doc"}, \code{"odt"}, \code{"git"}, and \code{"gfm"}. Use
+\code{"pdf"}, \code{"typst"}, \code{"epub"}, \code{"doc"}, \code{"odt"}, and \code{"git"}. Use
 \code{"all"} or \code{NULL} for the default friendly set: HTML, PDF, EPUB, DOC,
-and Git.}
+and GitBook.}
 
 \item{path}{IASI Quarto publication or multiproject directory.}
 

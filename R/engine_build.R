@@ -1,4 +1,4 @@
-.supported_formats = c("html", "pdf", "typst", "epub", "doc", "odt", "git", "gfm")
+.supported_formats = c("html", "pdf", "typst", "epub", "doc", "odt", "git")
 .all_formats = c("html", "pdf", "epub", "doc", "git")
 .resolve_build_formats = function(format = NULL) {
   selection = .normalise_build_selection(format, "format")
@@ -154,6 +154,7 @@
   groups = project$quarto$profile$group
   profiles = unique(unlist(groups, use.names = FALSE))
   profiles = setdiff(profiles, "html")
+  profiles = profiles[profiles %in% .supported_formats]
 
   labels = c(
     pdf = "PDF",
@@ -161,8 +162,7 @@
     epub = "eBook",
     doc = "DOC",
     odt = "ODT",
-    git = "GitBook",
-    gfm = "GFM"
+    git = "GitBook"
   )
 
   icons = c(
@@ -171,8 +171,7 @@
     epub = "book",
     doc = "file-earmark-word",
     odt = "file-earmark-text",
-    git = "github",
-    gfm = "markdown"
+    git = "book"
   )
 
   extensions = c(
@@ -189,8 +188,8 @@
       label = if (profile %in% names(labels)) labels[[profile]] else profile
       icon = if (profile %in% names(icons)) icons[[profile]] else "download"
 
-      href = if (profile %in% c("git", "gfm")) {
-        sprintf("../%s/index.md", profile)
+      href = if (identical(profile, "git")) {
+        "../git/README.md"
       } else if (profile %in% names(extensions)) {
         output_file = .resolve_export_output_file(project, profile)
         sprintf("../%s/%s.%s", profile, output_file, extensions[[profile]])

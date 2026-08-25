@@ -1,4 +1,4 @@
-.export_formats = c(pdf = "PDF", typst = "Typst", epub = "EPUB", doc = "DOC", odt = "ODT", git = "Git", gfm = "GFM")
+.export_formats = c(pdf = "PDF", typst = "Typst", epub = "EPUB", doc = "DOC", odt = "ODT", git = "GitBook")
 
 .publish_project = function(project, source = "_outputs") {
   destination = file.path(project$path, "publish")
@@ -232,12 +232,15 @@
    .copy_directory_contents(source, destination)
 
    formats = .published_directories(destination)
+   publication = .publication_info(project)
+
    .normalise_publish_tree(destination, project, formats)
 
    .move_publish_html_to_root(destination)
    .normalise_publish_exports(destination)
    .sync_export_anchors(destination)
-   .write_publish_timestamp(destination)
+   .normalise_publication(destination, project, formats, publication)
+   .write_publish_timestamp(destination, publication$stamp)
 
    invisible(TRUE)
 }
@@ -299,14 +302,15 @@
   path = file.path(publish_path, format)
   if (!dir.exists(path)) return(NULL)
 
-  extension = switch(format, pdf = "pdf", typst = "pdf", epub = "epub", doc = "odt", odt = "odt", git = "md", gfm = "md")
+  if (identical(format, "git")) {
+    readme = file.path(path, "README.md")
+    if (file.exists(readme)) return(readme)
+    return(NULL)
+  }
+
+  extension = switch(format, pdf = "pdf", typst = "pdf", epub = "epub", doc = "odt", odt = "odt")
   files = list.files(path, pattern = paste0("\\.", extension, "$"), recursive = TRUE, full.names = TRUE, ignore.case = TRUE)
   if (!length(files)) return(NULL)
-
-  if (format %in% c("git", "gfm")) {
-    index = files[tolower(basename(files)) == "index.md"]
-    if (length(index)) return(index[[1L]])
-  }
 
   files[[1L]]
 }
@@ -396,51 +400,347 @@
   invisible(TRUE)
 }
 
-.write_publish_timestamp = function(path, project_path = NULL) {
-   timestamp = Sys.time()
-   stamp = format(timestamp, tz = "UTC", format = "%Y-%m-%dT%H:%M:%OS6Z")
-   writeLines(stamp, file.path(path, ".publish"), useBytes = TRUE)
-   publish_date = format(as.Date(substr(stamp, 1L, 10L)), "%d/%m/%Y")
-   version = NULL
+.publication_info = function(project, timestamp = Sys.time()) {
+   version = project$version
 
-   if (!is.null(project_path)) {
-      iasi_path = file.path(project_path, "_iasi.yml")
-
-      if (file.exists(iasi_path)) {
-         iasi = yaml::read_yaml(iasi_path)
-         version = iasi$version
-
-         if ( is.null(version) ||
-             !length(version) ||
-             !nzchar(as.character(version))) {
-            version = NULL
-         }
-      }
+   if (
+      is.null(version) ||
+      length(version) != 1L ||
+      is.list(version) ||
+      is.na(version) ||
+      !nzchar(as.character(version))
+   ) {
+      version = NULL
+   } else {
+      version = as.character(version)
    }
+
+   stamp = format(
+      timestamp,
+      tz = "UTC",
+      format = "%Y-%m-%dT%H:%M:%OS6Z"
+   )
+
+   publish_date = format(timestamp, "%d/%m/%Y")
 
    text = if (is.null(version)) {
       sprintf("Publicado: %s", publish_date)
    } else {
-      sprintf("v%s · Publicado: %s", as.character(version), publish_date)
+      sprintf("v%s · Publicado: %s", version, publish_date)
    }
 
-   files = list.files(path, pattern = "\\.html$", recursive = TRUE, full.names = TRUE, ignore.case = TRUE)
+   list(
+      timestamp = timestamp,
+      stamp = stamp,
+      date = publish_date,
+      version = version,
+      text = text
+   )
+}
+
+.normalise_publication = function(path, project, formats, publication) {
+   for (format in formats) {
+      name = paste0(".normalise_publication_", format)
+
+      if (!exists(name, mode = "function")) next
+
+      fn = get(name, mode = "function")
+      fn(
+         path = path,
+         project = project,
+         publication = publication
+      )
+   }
+
+   invisible(TRUE)
+}
+
+.normalise_publication_html = function(path, project, publication) {
+   files = list.files(
+      path,
+      pattern = "\\.html$",
+      recursive = TRUE,
+      full.names = TRUE,
+      ignore.case = TRUE
+   )
+
+   if (!length(files)) return(invisible(TRUE))
 
    placeholder = '<span id="iasi-publish-date"></span>'
-   replacement = sprintf('<span id="iasi-publish-date">%s</span>',text)
+   replacement = sprintf(
+      '<span id="iasi-publish-date">%s</span>',
+      publication$text
+   )
 
    for (file in files) {
       html = paste(
-         readLines(file, warn = FALSE, encoding = "UTF-8"), collapse = "\n")
+         readLines(file, warn = FALSE, encoding = "UTF-8"),
+         collapse = "\n"
+      )
 
       if (!grepl(placeholder, html, fixed = TRUE)) next
 
-      html = gsub(placeholder, replacement, html, fixed = TRUE)
+      html = gsub(
+         placeholder,
+         replacement,
+         html,
+         fixed = TRUE
+      )
+
       writeLines(html, file, useBytes = TRUE)
    }
 
    invisible(TRUE)
 }
+
+.normalise_publication_pdf = function(path, project, publication) {
+   pdf_path = file.path(path, "pdf")
+
+   if (!dir.exists(pdf_path)) return(invisible(TRUE))
+
+   files = list.files(
+      pdf_path,
+      pattern = "\\.pdf$",
+      recursive = TRUE,
+      full.names = TRUE,
+      ignore.case = TRUE
+   )
+
+   if (!length(files)) return(invisible(TRUE))
+
+   .require_pdf_publication_tools()
+
+   for (file in files) {
+      .stamp_pdf_publication_info(
+         file,
+         publication$text
+      )
+   }
+
+   invisible(TRUE)
+}
+
+.require_pdf_publication_tools = function() {
+   required = c("pdftools", "qpdf")
+   missing = required[
+      !vapply(
+         required,
+         requireNamespace,
+         logical(1),
+         quietly = TRUE
+      )
+   ]
+
+   if (length(missing)) {
+      stop(
+         sprintf(
+            "PDF publication normalisation requires R package%s: %s.",
+            if (length(missing) == 1L) "" else "s",
+            paste(missing, collapse = ", ")
+         ),
+         call. = FALSE
+      )
+   }
+
+   invisible(TRUE)
+}
+
+.stamp_pdf_publication_info = function(file, text) {
+   markers = .pdf_publication_markers(file)
+
+   if (!nrow(markers)) {
+      warning(
+         sprintf(
+            "PDF publication marker was not found in '%s'. Rebuild the PDF before publishing it.",
+            basename(file)
+         ),
+         call. = FALSE
+      )
+
+      return(invisible(FALSE))
+   }
+
+   signatures = sprintf(
+      "%.2f|%.2f|%.2f|%.2f|%.2f|%.2f",
+      markers$page_width,
+      markers$page_height,
+      markers$x,
+      markers$y,
+      markers$width,
+      markers$height
+   )
+
+   groups = split(seq_len(nrow(markers)), signatures)
+   current = file
+   temporary = character()
+
+   on.exit(
+      if (length(temporary)) unlink(temporary, force = TRUE),
+      add = TRUE
+   )
+
+   for (group in groups) {
+      marker = markers[group[[1L]], , drop = FALSE]
+      stamp = tempfile("iasi-publish-stamp-", fileext = ".pdf")
+      output = tempfile("iasi-publish-pdf-", fileext = ".pdf")
+      temporary = c(temporary, stamp, output)
+
+      .create_pdf_publication_stamp(
+         stamp,
+         page_width = marker$page_width[[1L]],
+         page_height = marker$page_height[[1L]],
+         marker = marker,
+         text = text
+      )
+
+      qpdf::pdf_overlay_stamp(
+         input = current,
+         stamp = stamp,
+         output = output,
+         pages = markers$page[group]
+      )
+
+      current = output
+   }
+
+   if (!file.copy(current, file, overwrite = TRUE)) {
+      stop(
+         sprintf(
+            "Could not replace published PDF '%s' after normalisation.",
+            file
+         ),
+         call. = FALSE
+      )
+   }
+
+   invisible(TRUE)
+}
+
+.pdf_publication_markers = function(file) {
+   pages = suppressMessages(
+      pdftools::pdf_data(file)
+   )
+
+   sizes = suppressMessages(
+      pdftools::pdf_pagesize(file)
+   )
+
+   records = vector("list", length(pages))
+
+   for (page in seq_along(pages)) {
+      data = pages[[page]]
+
+      if (!nrow(data) || !"text" %in% names(data)) next
+
+      match = which(data$text == .pdf_publish_marker)
+      if (!length(match)) next
+
+      marker = data[match[[1L]], , drop = FALSE]
+
+      records[[page]] = data.frame(
+         page = page,
+         x = as.numeric(marker$x[[1L]]),
+         y = as.numeric(marker$y[[1L]]),
+         width = as.numeric(marker$width[[1L]]),
+         height = as.numeric(marker$height[[1L]]),
+         page_width = as.numeric(sizes$width[[page]]),
+         page_height = as.numeric(sizes$height[[page]]),
+         stringsAsFactors = FALSE
+      )
+   }
+
+   records = records[!vapply(records, is.null, logical(1))]
+
+   if (!length(records)) {
+      return(
+         data.frame(
+            page = integer(),
+            x = numeric(),
+            y = numeric(),
+            width = numeric(),
+            height = numeric(),
+            page_width = numeric(),
+            page_height = numeric()
+         )
+      )
+   }
+
+   do.call(rbind, records)
+}
+
+.create_pdf_publication_stamp = function(path,
+                                          page_width,
+                                          page_height,
+                                          marker,
+                                          text) {
+   pointsize = max(
+      6,
+      min(12, as.numeric(marker$height[[1L]]))
+   )
+
+   grDevices::pdf(
+      path,
+      width = page_width / 72,
+      height = page_height / 72,
+      onefile = TRUE,
+      paper = "special",
+      pointsize = pointsize,
+      useDingbats = FALSE
+   )
+
+   on.exit(grDevices::dev.off(), add = TRUE)
+
+   graphics::par(
+      mar = c(0, 0, 0, 0),
+      xaxs = "i",
+      yaxs = "i"
+   )
+
+   graphics::plot.new()
+   graphics::plot.window(
+      xlim = c(0, page_width),
+      ylim = c(0, page_height),
+      xaxs = "i",
+      yaxs = "i"
+   )
+
+   x = as.numeric(marker$x[[1L]]) +
+      as.numeric(marker$width[[1L]]) / 2
+
+   y = page_height -
+      as.numeric(marker$y[[1L]]) -
+      as.numeric(marker$height[[1L]]) / 2
+
+   graphics::text(
+      x,
+      y,
+      labels = text,
+      adj = c(0.5, 0.5),
+      cex = 1,
+      xpd = NA
+   )
+
+   invisible(path)
+}
+
+.write_publish_timestamp = function(path, stamp = NULL) {
+   if (is.null(stamp)) {
+      stamp = format(
+         Sys.time(),
+         tz = "UTC",
+         format = "%Y-%m-%dT%H:%M:%OS6Z"
+      )
+   }
+
+   writeLines(
+      as.character(stamp),
+      file.path(path, ".publish"),
+      useBytes = TRUE
+   )
+
+   invisible(TRUE)
+}
+
 .report_publish = function(plan) {
   report_root = if (isTRUE(plan$current) && grepl("^[0-9]+-", basename(plan$path))) dirname(plan$path) else plan$path
 
@@ -470,6 +770,175 @@
    fn(path = path, project = project, formats = formats)
 
    invisible(TRUE)
+}
+
+
+.normalise_regular = function(path, project, formats) {
+   for (format in formats) {
+      name = paste0(".normalise_regular_", format)
+
+      if (!exists(name, mode = "function")) next
+
+      fn = get(name, mode = "function")
+      fn(path = path, project = project)
+   }
+
+   invisible(TRUE)
+}
+
+.normalise_regular_html = function(path, project) {
+   html_path = file.path(path, "html")
+
+   if (!dir.exists(html_path)) return(invisible(TRUE))
+
+   files = list.files(
+      html_path,
+      pattern = "\\.html$",
+      recursive = TRUE,
+      full.names = TRUE,
+      ignore.case = TRUE
+   )
+
+   for (file in files) {
+      document = xml2::read_html(file)
+      document = .normalise_regular_html_sidebar(document, file)
+      xml2::write_html(document, file)
+   }
+
+   invisible(TRUE)
+}
+
+.normalise_regular_html_sidebar = function(document, file) {
+   chapters = xml2::xml_find_all(
+      document,
+      "//*[@id='quarto-sidebar']/div[contains(@class,'sidebar-menu-container')]/ul/li"
+   )
+
+   for (chapter in chapters) {
+      .normalise_regular_html_sidebar_chapter(chapter, file)
+   }
+
+   document
+}
+
+.normalise_regular_html_sidebar_chapter = function(chapter, file) {
+   link = xml2::xml_find_first(
+      chapter,
+      "./div[contains(concat(' ', normalize-space(@class), ' '), ' sidebar-item-container ')]//a[@href] | ./a[@href]"
+   )
+
+   if (inherits(link, "xml_missing")) return(chapter)
+
+   href = xml2::xml_attr(link, "href")
+   if (is.na(href) || !nzchar(href) || startsWith(href, "#")) return(chapter)
+
+   target_href = sub("[?#].*$", "", href)
+   target = file.path(dirname(file), utils::URLdecode(target_href))
+   if (!file.exists(target)) return(chapter)
+
+   target_document = xml2::read_html(target)
+   sections = xml2::xml_find_first(target_document, "//*[@id='TOC']/ul")
+   if (inherits(sections, "xml_missing")) return(chapter)
+
+   links = xml2::xml_find_all(sections, ".//a[@href]")
+
+   for (section_link in links) {
+      section_href = xml2::xml_attr(section_link, "href")
+
+      if (!is.na(section_href) && startsWith(section_href, "#")) {
+         xml2::xml_attr(section_link, "href") = paste0(target_href, section_href)
+      }
+   }
+
+   section_id = paste0(
+      "iasi-sidebar-",
+      gsub("[^A-Za-z0-9_-]+", "-", target_href)
+   )
+
+   chapter_class = xml2::xml_attr(chapter, "class")
+   if (is.na(chapter_class)) chapter_class = ""
+
+   xml2::xml_attr(chapter, "class") = trimws(
+      paste(chapter_class, "sidebar-item-section")
+   )
+
+   container = xml2::xml_find_first(
+      chapter,
+      "./div[contains(concat(' ', normalize-space(@class), ' '), ' sidebar-item-container ')]"
+   )
+
+   if (inherits(container, "xml_missing")) return(chapter)
+
+   toggle = xml2::xml_add_child(container, "a")
+   xml2::xml_attr(toggle, "class") = "sidebar-item-toggle text-start collapsed"
+   xml2::xml_attr(toggle, "data-bs-toggle") = "collapse"
+   xml2::xml_attr(toggle, "data-bs-target") = paste0("#", section_id)
+   xml2::xml_attr(toggle, "role") = "navigation"
+   xml2::xml_attr(toggle, "aria-expanded") = "false"
+   xml2::xml_attr(toggle, "aria-controls") = section_id
+   xml2::xml_attr(toggle, "aria-label") = "Toggle section"
+
+   icon = xml2::xml_add_child(toggle, "i")
+   xml2::xml_attr(icon, "class") = "bi bi-chevron-right ms-2"
+
+   xml2::xml_attr(sections, "id") = section_id
+   xml2::xml_attr(sections, "class") = "collapse list-unstyled sidebar-section depth2"
+
+   sections = .normalise_regular_html_sidebar_sections(
+      sections,
+      prefix = section_id,
+      depth = 2L
+   )
+
+   xml2::xml_add_child(chapter, sections, .copy = TRUE)
+
+   chapter
+}
+
+.normalise_regular_html_sidebar_sections = function(sections, prefix, depth) {
+   items = xml2::xml_find_all(sections, "./li")
+
+   for (i in seq_along(items)) {
+      item = items[[i]]
+      children = xml2::xml_find_first(item, "./ul")
+
+      if (inherits(children, "xml_missing")) next
+
+      id = paste0(prefix, "-", i)
+
+      item_class = xml2::xml_attr(item, "class")
+      if (is.na(item_class)) item_class = ""
+
+      xml2::xml_attr(item, "class") = trimws(
+         paste(item_class, "sidebar-item-section")
+      )
+
+      toggle = xml2::xml_add_child(item, "a")
+      xml2::xml_attr(toggle, "class") = "sidebar-item-toggle text-start collapsed"
+      xml2::xml_attr(toggle, "data-bs-toggle") = "collapse"
+      xml2::xml_attr(toggle, "data-bs-target") = paste0("#", id)
+      xml2::xml_attr(toggle, "role") = "navigation"
+      xml2::xml_attr(toggle, "aria-expanded") = "false"
+      xml2::xml_attr(toggle, "aria-controls") = id
+      xml2::xml_attr(toggle, "aria-label") = "Toggle section"
+
+      icon = xml2::xml_add_child(toggle, "i")
+      xml2::xml_attr(icon, "class") = "bi bi-chevron-right ms-2"
+
+      xml2::xml_attr(children, "id") = id
+      xml2::xml_attr(children, "class") = paste0(
+         "collapse list-unstyled sidebar-section depth",
+         depth + 1L
+      )
+
+      .normalise_regular_html_sidebar_sections(
+         children,
+         prefix = id,
+         depth = depth + 1L
+      )
+   }
+
+   sections
 }
 
 .normalise_structured = function(path, project, formats) {

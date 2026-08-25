@@ -13,9 +13,9 @@
 #'   prefix, or its numeric prefix. Use `"all"` or `NULL` to build every
 #'   publication. This argument is ignored when `path` is itself a publication.
 #' @param format Output format or formats. Supported values are `"html"`,
-#'   `"pdf"`, `"typst"`, `"epub"`, `"doc"`, `"odt"`, `"git"`, and `"gfm"`. Use
+#'   `"pdf"`, `"typst"`, `"epub"`, `"doc"`, `"odt"`, and `"git"`. Use
 #'   `"all"` or `NULL` for the default friendly set: HTML, PDF, EPUB, DOC,
-#'   and Git.
+#'   and GitBook.
 #' @param path IASI Quarto publication or multiproject directory.
 #' @param force Explicitly requests a complete build. `build()` already runs
 #'   the selected build pipeline unconditionally; this argument is provided so

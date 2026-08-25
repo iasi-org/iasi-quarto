@@ -69,6 +69,7 @@
     iasi_file = .normalise_project_path(iasi_file),
     type = type,
     strategy = iasi$strategy,
+    version = iasi$version,
     content_dir = iasi$content_dir,
     content_path = .content_path(
       project_path,
@@ -122,6 +123,10 @@
   is_book = identical(type, "book")
 
   list(
+    version = .yaml_field(
+      publication,
+      "version"
+    ),
     strategy = .value_or_default(
       .yaml_field(
         publication,
@@ -167,8 +172,7 @@
       epub = "book",
       doc = "book",
       odt = "book",
-      git = "book",
-      gfm = "book"
+      git = "default"
     ),
     character()
   )

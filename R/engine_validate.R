@@ -92,8 +92,7 @@
       "_quarto-epub.yml",
       "_quarto-doc.yml",
       "_quarto-odt.yml",
-      "_quarto-git.yml",
-      "_quarto-gfm.yml"
+      "_quarto-git.yml"
     ),
     character()
   )

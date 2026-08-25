@@ -1,7 +1,7 @@
 Package: iasi.quarto
 Type: Package
 Title: Build System for Quarto Publications
-Version: 0.9.5
+Version: 0.9.6
 Authors@R: person(
     given = "Javier",
     family = "G. Grandez",
@@ -19,7 +19,7 @@ LazyData: true
 Depends:
     R (>= 4.2.0)
 Imports:
-    utils, yaml
+    utils, yaml, pdftools, qpdf
 Roxygen: list(markdown = TRUE)
 Suggests: 
      testthat (>= 3.0.0)
