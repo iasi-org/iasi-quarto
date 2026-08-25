@@ -1,4 +1,4 @@
-.pdf_publish_marker = "IASIPUBLISHMARKER"
+# .pdf_publish_marker = "IASIPUBLISHMARKER"
 
 .render_html = function(publication, type = publication$type) .render(publication, "html", "html", type)
 .render_pdf = function(publication, type = publication$type) .render(publication, "pdf", "pdf", type)
@@ -191,11 +191,11 @@
     active_profiles = c(runtime_profile$name, active_profiles)
   }
 
-  if (identical(profile, "pdf")) {
-    marker_profile = .create_pdf_publish_marker_profile(path)
-    on.exit(unlink(marker_profile$file), add = TRUE)
-    active_profiles = c(active_profiles, marker_profile$name)
-  }
+  # if (identical(profile, "pdf")) {
+  #   marker_profile = .create_pdf_publish_marker_profile(path)
+  #   on.exit(unlink(marker_profile$file), add = TRUE)
+  #   active_profiles = c(active_profiles, marker_profile$name)
+  # }
 
   active_profile = paste(active_profiles, collapse = ",")
   status = system2("quarto", c("render", "--profile", active_profile, "--to", to))

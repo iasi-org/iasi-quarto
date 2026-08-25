@@ -508,14 +508,14 @@
 
    if (!length(files)) return(invisible(TRUE))
 
-   .require_pdf_publication_tools()
+   # .require_pdf_publication_tools()
 
-   for (file in files) {
-      .stamp_pdf_publication_info(
-         file,
-         publication$text
-      )
-   }
+   # for (file in files) {
+   #    .stamp_pdf_publication_info(
+   #       file,
+   #       publication$text
+   #    )
+   # }
 
    invisible(TRUE)
 }
