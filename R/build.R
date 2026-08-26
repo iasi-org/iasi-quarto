@@ -12,10 +12,10 @@
 #'   selected by its complete directory name, its name without the numeric
 #'   prefix, or its numeric prefix. Use `"all"` or `NULL` to build every
 #'   publication. This argument is ignored when `path` is itself a publication.
-#' @param format Output format or formats. Supported values are `"html"`,
-#'   `"pdf"`, `"typst"`, `"epub"`, `"doc"`, `"odt"`, and `"git"`. Use
-#'   `"all"` or `NULL` for the default friendly set: HTML, PDF, EPUB, DOC,
-#'   and GitBook.
+#' @param format Output format or formats. Use `"all"` or `NULL` to build
+#'   every profile declared in `profile.group` in `_quarto.yml`. Explicit
+#'   formats that are not declared, have no profile file, or have no renderer
+#'   are reported with a warning and ignored.
 #' @param path IASI Quarto publication or multiproject directory.
 #' @param force Explicitly requests a complete build. `build()` already runs
 #'   the selected build pipeline unconditionally; this argument is provided so
@@ -28,7 +28,6 @@
 build = function(book = NULL, format = NULL, path = ".", force = FALSE) {
   started_at = Sys.time()
 
-  quiet_missing = identical(.normalise_build_selection(format, "format"), "all")
   formats = .resolve_build_formats(format)
 
   plan = validate(path)
@@ -51,8 +50,7 @@ build = function(book = NULL, format = NULL, path = ".", force = FALSE) {
   plan$projects = lapply(
     plan$projects,
     .render_build_project,
-    formats = formats,
-    quiet_missing = quiet_missing
+    formats = formats
   )
 
   plan$rendered = all(vapply(

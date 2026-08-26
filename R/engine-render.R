@@ -2,7 +2,6 @@
 
 .render_html = function(publication, type = publication$type) .render(publication, "html", "html", type)
 .render_pdf = function(publication, type = publication$type) .render(publication, "pdf", "pdf", type)
-.render_typst = function(publication, type = publication$type) .render(publication, "typst", "typst", type)
 .render_epub = function(publication, type = publication$type) .render(publication, "epub", "epub", type)
 .render_odt = function(publication, type = publication$type, profile = "odt") .render(publication, profile, "odt", type)
 .render_doc = function(publication, type = publication$type) {

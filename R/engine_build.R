@@ -1,43 +1,106 @@
-.supported_formats = c("html", "pdf", "typst", "epub", "doc", "odt", "git")
-.all_formats = c("html", "pdf", "epub", "doc", "git")
 .resolve_build_formats = function(format = NULL) {
-  selection = .normalise_build_selection(format, "format")
-  if (identical(selection, "all")) return(.all_formats)
-
-  invalid = setdiff(selection, .supported_formats)
-  if (length(invalid)) stop(.unsupported_formats_message(invalid), call. = FALSE)
-
-  selection
+  .normalise_build_selection(format, "format")
 }
 
-.unsupported_formats_message = function(formats) {
-  sprintf(
-    "Unsupported format%s: %s. Supported formats are: %s.",
-    if (length(formats) == 1L) "" else "s",
-    paste(sprintf('"%s"', formats), collapse = ", "),
-    paste(sprintf('"%s"', .supported_formats), collapse = ", ")
-  )
+.project_declared_formats = function(project) {
+  groups = .yaml_field(.yaml_section(project$quarto, "profile"), "group")
+  formats = unique(as.character(unlist(groups, use.names = FALSE)))
+  formats[!is.na(formats) & nzchar(formats)]
 }
 
-.project_supported_formats = function(project) {
-  types = project$format_types
-  if (is.null(types)) types = .publication_format_types(project$type, isTRUE(project$html_landing_page))
+.resolve_project_build_formats = function(project, formats, warn = TRUE) {
+  declared = .project_declared_formats(project)
+  selected = if (identical(formats, "all")) declared else formats
 
-  candidates = names(types)
-  if (!length(candidates)) stop(sprintf("Unsupported Quarto project type '%s'.", .display_checked_value(project$type)), call. = FALSE)
+  if (!identical(formats, "all")) {
+    missing = selected[!selected %in% declared]
 
-  profiles = file.path(project$path, sprintf("_quarto-%s.yml", candidates))
-  candidates[file.exists(profiles)]
+    if (length(missing) && warn) {
+      for (format in missing) {
+        warning(
+          sprintf("Ignorando '%s': no está declarado en 'profile.group'.", format),
+          call. = FALSE
+        )
+      }
+    }
+
+    selected = selected[selected %in% declared]
+  }
+
+  resolved = character()
+
+  for (format in selected) {
+    profile = file.path(project$path, sprintf("_quarto-%s.yml", format))
+
+    if (!file.exists(profile)) {
+      if (warn) {
+        warning(
+          sprintf("Ignorando '%s' porque falta '_quarto-%s.yml'.", format, format),
+          call. = FALSE
+        )
+      }
+      next
+    }
+
+    renderer = paste0(".render_", format)
+
+    if (!exists(renderer, mode = "function")) {
+      if (warn) {
+        warning(
+          sprintf("Ignorando '%s' porque no existe renderer '%s'.", format, renderer),
+          call. = FALSE
+        )
+      }
+      next
+    }
+
+    resolved = c(resolved, format)
+  }
+
+  resolved = unique(resolved)
+  .order_project_build_formats(project, resolved, warn = warn)
 }
 
-.resolve_project_build_formats = function(project, formats, quiet = FALSE) {
-  supported = .project_supported_formats(project)
-  resolved = formats[formats %in% supported]
-  missing = formats[!formats %in% supported]
+.order_project_build_formats = function(project, formats, warn = TRUE) {
+  if (!length(formats)) {
+    return(formats)
+  }
 
-  if (length(missing) && !quiet) for (format in missing) warning(sprintf("Ignorando '%s' porque falta '_quarto-%s.yml'.", format, format), call. = FALSE)
+  if ("single" %in% formats && !"html" %in% formats) {
+    html_profile = file.path(project$path, "_quarto-html.yml")
+    html_renderer = ".render_html"
 
-  resolved
+    if (!file.exists(html_profile)) {
+      if (warn) {
+        warning(
+          "Ignorando 'single' porque requiere HTML y falta '_quarto-html.yml'.",
+          call. = FALSE
+        )
+      }
+
+      formats = formats[formats != "single"]
+    } else if (!exists(html_renderer, mode = "function")) {
+      if (warn) {
+        warning(
+          sprintf(
+            "Ignorando 'single' porque requiere HTML y no existe renderer '%s'.",
+            html_renderer
+          ),
+          call. = FALSE
+        )
+      }
+
+      formats = formats[formats != "single"]
+    } else {
+      formats = c("html", formats)
+    }
+  }
+
+  if ("html" %in% formats) {
+    formats = c("html", formats[formats != "html"])
+  }
+
+  unique(formats)
 }
 
 .select_build_books = function(plan, book = NULL) {
@@ -93,9 +156,9 @@
   value
 }
 
-.render_build_project = function(project, formats, quiet_missing = FALSE) {
+.render_build_project = function(project, formats) {
   publication = project$publication
-  project_formats = .resolve_project_build_formats(project, formats, quiet = quiet_missing)
+  project_formats = .resolve_project_build_formats(project, formats)
 
   for (format in project_formats) {
     message(sprintf("Rendering '%s' as %s...", project$name, toupper(format)))
@@ -151,14 +214,13 @@
 }
 
 .write_html_exports = function(project) {
-  groups = project$quarto$profile$group
-  profiles = unique(unlist(groups, use.names = FALSE))
+  profiles = .resolve_project_build_formats(project, "all", warn = FALSE)
   profiles = setdiff(profiles, "html")
-  profiles = profiles[profiles %in% .supported_formats]
+  profiles = profiles[dir.exists(file.path(project$path, "_outputs", profiles))]
 
   labels = c(
+    single = "HTML",
     pdf = "PDF",
-    typst = "PDF (Typst)",
     epub = "eBook",
     doc = "DOC",
     odt = "ODT",
@@ -166,8 +228,8 @@
   )
 
   icons = c(
+    single = "file-earmark-code",
     pdf = "file-earmark-pdf",
-    typst = "file-earmark-pdf",
     epub = "book",
     doc = "file-earmark-word",
     odt = "file-earmark-text",
@@ -175,8 +237,8 @@
   )
 
   extensions = c(
+    single = "html",
     pdf = "pdf",
-    typst = "pdf",
     epub = "epub",
     doc = "odt",
     odt = "odt"

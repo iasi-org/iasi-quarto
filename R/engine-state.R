@@ -365,12 +365,8 @@
   invisible(project)
 }
 
-.build_required = function(project, formats, quiet_missing = TRUE) {
-  required = .resolve_project_build_formats(
-    project,
-    formats,
-    quiet = quiet_missing
-  )
+.build_required = function(project, formats) {
+  required = formats
 
   if (!length(required)) {
     return(FALSE)

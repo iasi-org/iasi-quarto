@@ -12,10 +12,10 @@ selected by its complete directory name, its name without the numeric
 prefix, or its numeric prefix. Use \code{"all"} or \code{NULL} to build every
 publication. This argument is ignored when \code{path} is itself a publication.}
 
-\item{format}{Output format or formats. Supported values are \code{"html"},
-\code{"pdf"}, \code{"typst"}, \code{"epub"}, \code{"doc"}, \code{"odt"}, and \code{"git"}. Use
-\code{"all"} or \code{NULL} for the default friendly set: HTML, PDF, EPUB, DOC,
-and GitBook.}
+\item{format}{Output format or formats. Use \code{"all"} or \code{NULL} to build
+every profile declared in \code{profile.group} in \verb{_quarto.yml}. Explicit
+formats that are not declared, have no profile file, or have no renderer
+are reported with a warning and ignored.}
 
 \item{path}{IASI Quarto publication or multiproject directory.}
 

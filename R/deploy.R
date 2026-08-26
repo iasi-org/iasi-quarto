@@ -34,14 +34,6 @@
 #'
 #' @export
 deploy = function(book = NULL, format = NULL, path = ".", force = FALSE) {
-  quiet_missing = identical(
-    .normalise_build_selection(
-      format,
-      "format"
-    ),
-    "all"
-  )
-
   formats = .resolve_build_formats(format)
 
   plan = validate(path)
@@ -68,15 +60,19 @@ deploy = function(book = NULL, format = NULL, path = ".", force = FALSE) {
   for (i in seq_along(plan$projects)) {
     project = plan$projects[[i]]
 
-    build_required = isTRUE(force) || .build_required(
+    project_formats = .resolve_project_build_formats(
       project,
-      formats = formats,
-      quiet_missing = quiet_missing
+      formats,
+      warn = TRUE
     )
+
+    if (!length(project_formats)) next
+
+    build_required = isTRUE(force) || .build_required(project, formats = project_formats)
 
     if (build_required) {
       build_result = build(
-        format = format,
+        format = project_formats,
         path = project$path,
         force = force
       )

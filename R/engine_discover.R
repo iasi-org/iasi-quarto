@@ -57,10 +57,6 @@
     type = type
   )
 
-  format_types = .publication_format_types(
-    type = type,
-    html_landing_page = iasi$html_landing_page
-  )
 
   project = list(
     name = basename(project_path),
@@ -77,7 +73,6 @@
     ),
     numbered = iasi$numbered,
     html_landing_page = iasi$html_landing_page,
-    format_types = format_types,
     quarto = quarto,
     iasi = iasi_source
   )
@@ -161,47 +156,16 @@
   )
 }
 
-.publication_format_types = function(type, html_landing_page = FALSE) {
-  switch(
-    type,
-    website = c(html = "website"),
-    book = c(
-      html = if (isTRUE(html_landing_page)) "website" else "book",
-      pdf = "book",
-      typst = "book",
-      epub = "book",
-      doc = "book",
-      odt = "book",
-      git = "default"
-    ),
-    character()
-  )
-}
-
 .project_format_type = function(project, format) {
-  types = project$format_types
-
-  if (is.null(types)) {
-    types = .publication_format_types(
-      type = project$type,
-      html_landing_page = isTRUE(project$html_landing_page)
-    )
-  }
-
   if (
-    !format %in% names(types)
+    identical(format, "html") &&
+      identical(project$type, "book") &&
+      isTRUE(project$html_landing_page)
   ) {
-    stop(
-      sprintf(
-        "Project '%s' does not define an effective Quarto project type for format '%s'.",
-        project$name,
-        format
-      ),
-      call. = FALSE
-    )
+    return("website")
   }
 
-  unname(types[[format]])
+  project$type
 }
 
 .yaml_section = function(source, name) {
