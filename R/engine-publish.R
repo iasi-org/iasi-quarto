@@ -1,4 +1,4 @@
-.export_formats = c(single = "HTML", pdf = "PDF", epub = "EPUB", doc = "DOC", odt = "ODT", git = "GitBook")
+.export_formats = c(single = "HTML", pdf = "PDF", epub = "EPUB", docx = "DOCX", odt = "ODT", git = "GitBook")
 
 .publish_project = function(project, source = "_outputs") {
   destination = file.path(project$path, "publish")
@@ -308,7 +308,7 @@
     return(NULL)
   }
 
-  extension = switch(format, single = "html", pdf = "pdf", epub = "epub", doc = "odt", odt = "odt")
+  extension = switch(format, single = "html", pdf = "pdf", epub = "epub", docx = "docx", odt = "odt")
   files = list.files(path, pattern = paste0("\\.", extension, "$"), recursive = TRUE, full.names = TRUE, ignore.case = TRUE)
   if (!length(files)) return(NULL)
 

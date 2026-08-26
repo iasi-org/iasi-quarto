@@ -1,23 +1,23 @@
 # .pdf_publish_marker = "IASIPUBLISHMARKER"
 
-.render_html = function(publication, type = publication$type) .render(publication, "html", "html", type)
-.render_pdf = function(publication, type = publication$type) .render(publication, "pdf", "pdf", type)
-.render_epub = function(publication, type = publication$type) .render(publication, "epub", "epub", type)
-.render_odt = function(publication, type = publication$type, profile = "odt") .render(publication, profile, "odt", type)
-.render_doc = function(publication, type = publication$type) {
-  .render_alias(publication, alias = "doc", format = "odt", type = type, renderer = .render_odt)
-}
-
-.render_git = function(publication, type = "default") {
-  publication = .render(publication, "git", "commonmark", "default")
-  .prepare_gitbook(publication$path)
+.render_html = function(publication, config) .render(publication, config, "html")
+.render_pdf = function(publication, config) .render(publication, config, "pdf")
+.render_pdfua = function(publication, config) .render(publication, config, "typst")
+.render_epub = function(publication, config) .render(publication, config, "epub")
+.render_git = function(publication, config) {
+  config$type = "default"
+  publication = .render(publication, config, "commonmark")
+  .prepare_gitbook(publication$path, config$output_path)
   publication
 }
 
-.prepare_gitbook = function(path) {
-  output = file.path(path, "_outputs", "git")
+.prepare_gitbook = function(path, output = NULL) {
+  if (is.null(output)) {
+    stop("GitBook renderer did not report an output directory.", call. = FALSE)
+  }
+
   if (!dir.exists(output)) {
-    stop("GitBook renderer did not create '_outputs/git'.", call. = FALSE)
+    stop(sprintf("GitBook renderer did not create '%s'.", output), call. = FALSE)
   }
 
   index = file.path(output, "index.md")
@@ -145,49 +145,33 @@
 }
 
 
-.render_alias = function(publication, alias, format, type, renderer) {
-  outputs = file.path(publication$path, "_outputs")
-  source = file.path(outputs, format)
-  target = file.path(outputs, alias)
-  backup = NULL
 
-  if (dir.exists(source)) {
-    dir.create(outputs, recursive = TRUE, showWarnings = FALSE)
-    backup = tempfile(paste0(".iasi-", format, "-"), tmpdir = outputs)
-    if (!file.rename(source, backup)) stop(sprintf("Could not preserve existing output directory '%s'.", source), call. = FALSE)
-  }
-
-  restore = function() {
-    if (dir.exists(source)) unlink(source, recursive = TRUE, force = TRUE)
-    if (!is.null(backup) && dir.exists(backup)) file.rename(backup, source)
-  }
-  on.exit(restore(), add = TRUE)
-
-  publication = renderer(publication, type = type, profile = alias)
-  if (!dir.exists(source)) stop(sprintf("Alias renderer '%s' did not create expected output directory '%s'.", alias, source), call. = FALSE)
-  if (dir.exists(target)) unlink(target, recursive = TRUE, force = TRUE)
-  if (!file.rename(source, target)) stop(sprintf("Could not rename output directory '%s' to '%s'.", source, target), call. = FALSE)
-
-  publication
-}
-
-.render = function(publication, profile, to, type = publication$type) {
-  .render_profile(publication$path, profile, to, type)
+.render = function(publication, config, to) {
+  .render_profile(publication$path, config, to)
   publication$rendered = TRUE
-  publication$profiles = unique(c(publication$profiles, profile))
+  publication$profiles = unique(c(publication$profiles, config$profile))
   publication
 }
 
-.render_profile = function(path, profile, to, type = NULL) {
+.render_profile = function(path, config, to) {
   previous_directory = setwd(path)
   on.exit(setwd(previous_directory), add = TRUE)
 
-  active_profiles = profile
+  active_profiles = config$profile
 
-  if (!is.null(type)) {
-    runtime_profile = .create_quarto_type_profile(path, type)
+  if (!is.null(config$type)) {
+    runtime_profile = .create_quarto_type_profile(path, config$type)
     on.exit(unlink(runtime_profile$file), add = TRUE)
     active_profiles = c(runtime_profile$name, active_profiles)
+  }
+
+  if (.valid_output_dir(config$output_dir)) {
+    output_profile = .create_quarto_output_profile(
+      path = path,
+      output_dir = config$output_dir
+    )
+    on.exit(unlink(output_profile$file), add = TRUE)
+    active_profiles = c(active_profiles, output_profile$name)
   }
 
   # if (identical(profile, "pdf")) {
@@ -198,7 +182,7 @@
 
   active_profile = paste(active_profiles, collapse = ",")
   status = system2("quarto", c("render", "--profile", active_profile, "--to", to))
-  if (!identical(status, 0L)) stop(sprintf("Quarto rendering failed for profile '%s' with status %s.", profile, status), call. = FALSE)
+  if (!identical(status, 0L)) stop(sprintf("Quarto rendering failed for profile '%s' with status %s.", config$profile, status), call. = FALSE)
 
   invisible(TRUE)
 }
@@ -206,6 +190,16 @@
 .create_quarto_type_profile = function(path, type) {
   file = tempfile("_quarto-iasi-runtime-", tmpdir = path, fileext = ".yml")
   yaml::write_yaml(list(project = list(type = type)), file)
+  name = sub("^_quarto-(.*)\\.yml$", "\\1", basename(file))
+  list(name = name, file = file)
+}
+
+.create_quarto_output_profile = function(path, output_dir) {
+  file = tempfile("_quarto-iasi-output-", tmpdir = path, fileext = ".yml")
+  yaml::write_yaml(
+    list(project = list("output-dir" = output_dir)),
+    file
+  )
   name = sub("^_quarto-(.*)\\.yml$", "\\1", basename(file))
   list(name = name, file = file)
 }

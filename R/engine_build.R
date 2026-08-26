@@ -61,36 +61,50 @@
   .order_project_build_formats(project, resolved, warn = warn)
 }
 
+.pandoc_build_formats = function() {
+  c("single", "docx", "odt")
+}
+
 .order_project_build_formats = function(project, formats, warn = TRUE) {
   if (!length(formats)) {
     return(formats)
   }
 
-  if ("single" %in% formats && !"html" %in% formats) {
+  pandoc_formats = intersect(formats, .pandoc_build_formats())
+
+  if (length(pandoc_formats) && !"html" %in% formats) {
     html_profile = file.path(project$path, "_quarto-html.yml")
     html_renderer = ".render_html"
 
     if (!file.exists(html_profile)) {
       if (warn) {
-        warning(
-          "Ignorando 'single' porque requiere HTML y falta '_quarto-html.yml'.",
-          call. = FALSE
-        )
+        for (format in pandoc_formats) {
+          warning(
+            sprintf(
+              "Ignorando '%s' porque requiere HTML y falta '_quarto-html.yml'.",
+              format
+            ),
+            call. = FALSE
+          )
+        }
       }
 
-      formats = formats[formats != "single"]
+      formats = setdiff(formats, pandoc_formats)
     } else if (!exists(html_renderer, mode = "function")) {
       if (warn) {
-        warning(
-          sprintf(
-            "Ignorando 'single' porque requiere HTML y no existe renderer '%s'.",
-            html_renderer
-          ),
-          call. = FALSE
-        )
+        for (format in pandoc_formats) {
+          warning(
+            sprintf(
+              "Ignorando '%s' porque requiere HTML y no existe renderer '%s'.",
+              format,
+              html_renderer
+            ),
+            call. = FALSE
+          )
+        }
       }
 
-      formats = formats[formats != "single"]
+      formats = setdiff(formats, pandoc_formats)
     } else {
       formats = c("html", formats)
     }
@@ -158,21 +172,67 @@
 
 .render_build_project = function(project, formats) {
   publication = project$publication
+  requested_formats = if (identical(formats, "all")) {
+    .project_declared_formats(project)
+  } else {
+    formats
+  }
+
   project_formats = .resolve_project_build_formats(project, formats)
+  html_generated = "html" %in% project_formats && !"html" %in% requested_formats
+
+  configs = setNames(
+    lapply(
+      project_formats,
+      function(format) .profile_config(project, format)
+    ),
+    project_formats
+  )
+
+  if ("html" %in% names(configs)) {
+    for (format in intersect(names(configs), .pandoc_build_formats())) {
+      configs[[format]]$html = configs$html
+    }
+  }
+
+  if (html_generated) {
+    on.exit(
+      .remove_generated_html(configs$html$output_path),
+      add = TRUE
+    )
+  }
 
   for (format in project_formats) {
     message(sprintf("Rendering '%s' as %s...", project$name, toupper(format)))
     renderer = get(paste0(".render_", format), mode = "function")
-    publication = renderer(publication, .project_format_type(project, format))
+    publication = renderer(publication, configs[[format]])
   }
 
-  if ("html" %in% project_formats) {
+  if ("html" %in% project_formats && !html_generated) {
     .write_html_exports(project)
   }
 
+  if (html_generated) {
+    publication$profiles = setdiff(publication$profiles, "html")
+    project_formats = setdiff(project_formats, "html")
+  }
+
+  project$html_generated = html_generated
   project$publication = publication
   project$render_formats = project_formats
   project
+}
+
+.remove_generated_html = function(output_path) {
+  if (!is.null(output_path) && dir.exists(output_path)) {
+    unlink(
+      output_path,
+      recursive = TRUE,
+      force = TRUE
+    )
+  }
+
+  invisible(TRUE)
 }
 
 .resolve_export_output_file = function(project, profile) {
@@ -221,8 +281,9 @@
   labels = c(
     single = "HTML",
     pdf = "PDF",
+    pdfua = "PDF/UA",
     epub = "eBook",
-    doc = "DOC",
+    docx = "DOCX",
     odt = "ODT",
     git = "GitBook"
   )
@@ -230,8 +291,9 @@
   icons = c(
     single = "file-earmark-code",
     pdf = "file-earmark-pdf",
+    pdfua = "file-earmark-pdf",
     epub = "book",
-    doc = "file-earmark-word",
+    docx = "file-earmark-word",
     odt = "file-earmark-text",
     git = "book"
   )
@@ -239,8 +301,9 @@
   extensions = c(
     single = "html",
     pdf = "pdf",
+    pdfua = "pdf",
     epub = "epub",
-    doc = "odt",
+    docx = "docx",
     odt = "odt"
   )
 
