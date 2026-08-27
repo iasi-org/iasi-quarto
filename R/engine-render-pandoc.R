@@ -51,13 +51,13 @@
     stop("Pandoc renderer requires at least one book chapter.", call. = FALSE)
   }
 
-  html_path = config$html$output_path
+  pandoc_path = config$pandoc$output_path
 
-  if (is.null(html_path) || !dir.exists(html_path)) {
+  if (is.null(pandoc_path) || !dir.exists(pandoc_path)) {
     stop(
       sprintf(
-        "Pandoc renderer requires the rendered HTML output directory%s.",
-        if (is.null(html_path)) "" else sprintf(" '%s'", html_path)
+        "Pandoc renderer requires the prepared Pandoc input directory%s.",
+        if (is.null(pandoc_path)) "" else sprintf(" '%s'", pandoc_path)
       ),
       call. = FALSE
     )
@@ -65,7 +65,7 @@
 
   inputs = .pandoc_html_inputs(
     publication,
-    html_path
+    pandoc_path
   )
 
   output_path = config$output_path
@@ -95,7 +95,7 @@
   .pandoc(
     inputs = inputs,
     output = output,
-    resource_path = .pandoc_resource_path(inputs, html_path),
+    resource_path = .pandoc_resource_path(inputs, pandoc_path),
     filter = filter,
     options = options
   )
@@ -179,7 +179,7 @@
   if (length(missing)) {
     stop(
       sprintf(
-        "Pandoc renderer could not find generated HTML page%s: %s.",
+        "Pandoc renderer could not find prepared HTML page%s: %s.",
         if (length(missing) == 1L) "" else "s",
         paste(
           sprintf("'%s'", missing),
@@ -197,11 +197,11 @@
   )
 }
 
-.pandoc_resource_path = function(inputs, html_path) {
+.pandoc_resource_path = function(inputs, pandoc_path) {
   paths = unique(
     c(
       normalizePath(
-        html_path,
+        pandoc_path,
         winslash = "/",
         mustWork = TRUE
       ),

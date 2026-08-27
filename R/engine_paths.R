@@ -98,6 +98,30 @@
   )
 }
 
+.build_output_config = function(project, name) {
+  output_dir = .resolve_output_dir(
+    quarto = project$quarto,
+    profile_quarto = list(),
+    profile = name
+  )
+
+  output_path = NULL
+
+  if (.valid_output_dir(output_dir)) {
+    output_path = if (.is_absolute_path(output_dir)) {
+      output_dir
+    } else {
+      file.path(project$path, output_dir)
+    }
+  }
+
+  list(
+    name = name,
+    output_dir = output_dir,
+    output_path = output_path
+  )
+}
+
 .profile_output_dir_value = function(path, profile) {
   quarto_path = file.path(path, "_quarto.yml")
   profile_path = file.path(

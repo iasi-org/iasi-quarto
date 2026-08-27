@@ -180,6 +180,8 @@
 
   project_formats = .resolve_project_build_formats(project, formats)
   html_generated = "html" %in% project_formats && !"html" %in% requested_formats
+  pandoc_formats = intersect(project_formats, .pandoc_build_formats())
+  needs_pandoc = length(pandoc_formats) > 0L
 
   configs = setNames(
     lapply(
@@ -189,10 +191,19 @@
     project_formats
   )
 
-  if ("html" %in% names(configs)) {
-    for (format in intersect(names(configs), .pandoc_build_formats())) {
-      configs[[format]]$html = configs$html
+  pandoc_config = NULL
+
+  if (needs_pandoc) {
+    pandoc_config = .build_output_config(project, "pandoc")
+
+    for (format in pandoc_formats) {
+      configs[[format]]$pandoc = pandoc_config
     }
+
+    on.exit(
+      .remove_pandoc(pandoc_config$output_path),
+      add = TRUE
+    )
   }
 
   if (html_generated) {
@@ -206,6 +217,13 @@
     message(sprintf("Rendering '%s' as %s...", project$name, toupper(format)))
     renderer = get(paste0(".render_", format), mode = "function")
     publication = renderer(publication, configs[[format]])
+
+    if (identical(format, "html") && needs_pandoc) {
+      .create_pandoc(
+        html_path = configs$html$output_path,
+        pandoc_path = pandoc_config$output_path
+      )
+    }
   }
 
   if ("html" %in% project_formats && !html_generated) {
