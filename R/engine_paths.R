@@ -168,3 +168,85 @@
     !is.na(value) &&
     nzchar(value)
 }
+
+.is_absolute_path = function(path) {
+  grepl("^(/|[A-Za-z]:[/\\\\])", path)
+}
+
+.resolve_project_paths = function(project_path, paths) {
+  values = list(
+    inputs = .yaml_field(paths, "inputs"),
+    orchestration = .yaml_field(paths, "orchestration"),
+    outputs = .yaml_field(paths, "outputs"),
+    releases = .yaml_field(paths, "releases")
+  )
+
+  resolved = lapply(
+    values,
+    function(value) .resolve_project_owned_path(project_path, value)
+  )
+
+  resolved$docs = if (is.null(resolved$outputs)) {
+    NULL
+  } else {
+    file.path(resolved$outputs, "docs")
+  }
+
+  resolved$publish = if (is.null(resolved$releases)) {
+    NULL
+  } else {
+    file.path(resolved$releases, "publish")
+  }
+
+  resolved
+}
+
+.resolve_project_owned_path = function(project_path, value) {
+  if (!.valid_iasi_path_value(value)) {
+    return(NULL)
+  }
+
+  if (.is_absolute_path(value)) {
+    return(value)
+  }
+
+  file.path(project_path, value)
+}
+
+.valid_iasi_path_value = function(value) {
+  is.character(value) &&
+    length(value) == 1L &&
+    !is.na(value) &&
+    nzchar(value)
+}
+
+.default_project_paths = function(project_path) {
+  .resolve_project_paths(
+    project_path,
+    list(
+      inputs = "inputs",
+      orchestration = "orchestration",
+      outputs = "outputs",
+      releases = "releases"
+    )
+  )
+}
+
+.project_output_source = function(project, source = NULL) {
+  if (is.null(source)) {
+    return(project$paths$docs)
+  }
+
+  if (!is.character(source) ||
+      length(source) != 1L ||
+      is.na(source) ||
+      !nzchar(source)) {
+    stop("`source` must be one non-empty directory path.", call. = FALSE)
+  }
+
+  if (.is_absolute_path(source)) {
+    return(source)
+  }
+
+  file.path(project$path, source)
+}

@@ -132,15 +132,18 @@
 
 .check_iasi_configuration = function(project) {
   errors = character()
+  config_name = basename(project$iasi_file)
 
-  publication = project$iasi[["publication"]]
+  source = project$iasi_source
+  publication = if (is.list(source)) source[["publication"]] else NULL
+  paths = if (is.list(source)) source[["paths"]] else NULL
 
   if (!is.null(publication) && !is.list(publication)) {
-    return(
-      "The 'publication' section in _iasi.yml must be a mapping."
+    errors = c(
+      errors,
+      sprintf("The 'publication' section in %s must be a mapping.", config_name)
     )
   }
-
 
   html = if (is.list(publication)) {
     publication[["html"]]
@@ -151,10 +154,29 @@
   if (!is.null(html) && !is.list(html)) {
     errors = c(
       errors,
-      "The 'publication.html' section in _iasi.yml must be a mapping."
+      sprintf("The 'publication.html' section in %s must be a mapping.", config_name)
     )
   }
 
+  if (!is.null(paths) && !is.list(paths)) {
+    errors = c(
+      errors,
+      sprintf("The 'paths' section in %s must be a mapping.", config_name)
+    )
+  }
+
+  effective_paths = .yaml_section(project$iasi, "paths")
+
+  for (name in c("inputs", "orchestration", "outputs", "releases")) {
+    value = .yaml_field(effective_paths, name)
+
+    if (!.valid_iasi_path_value(value)) {
+      errors = c(
+        errors,
+        sprintf("IASI path '%s' must be a non-empty string.", name)
+      )
+    }
+  }
 
   if (
     !is.logical(project$html_landing_page) ||
@@ -235,6 +257,7 @@
     book = c(
       "regular",
       "structured",
+      "parted",
       "direct"
     ),
     character()
@@ -511,6 +534,15 @@
 }
 
 .check_content_folder = function(path, project) {
+  if (identical(project$strategy, "parted")) {
+    return(
+      .check_parted_folder(
+        path = path,
+        project = project
+      )
+    )
+  }
+
   folder = .describe_content_folder(
     path = path,
     project = project

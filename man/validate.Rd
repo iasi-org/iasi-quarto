@@ -20,9 +20,9 @@ multiproject containing one or more IASI Quarto publications.
 }
 \details{
 A directory is recognised as an IASI Quarto publication only when it
-contains both \verb{_quarto.yml} and \verb{_iasi.yml}. If the directory itself is not
+contains \verb{_quarto.yml} and exactly one of \verb{_iasi.yml} or \code{.iasi.yml}. If the directory itself is not
 a publication, \code{validate()} searches its subdirectories recursively.
 
-This function only recognises the workspace. It does not read \verb{_iasi.yml},
+This function only recognises the workspace. It does not read the IASI configuration,
 inspect the publication structure, or validate its contents.
 }

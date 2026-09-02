@@ -16,37 +16,60 @@
   )
 }
 
+.iasi_config_names = function() {
+  c("_iasi.yml", ".iasi.yml")
+}
+
+.iasi_config_file = function(path, required = FALSE) {
+  candidates = file.path(
+    path,
+    .iasi_config_names()
+  )
+
+  existing = candidates[file.exists(candidates)]
+
+  if (length(existing) > 1L) {
+    stop(
+      sprintf(
+        "IASI configuration is ambiguous in '%s': both _iasi.yml and .iasi.yml exist. Keep only one.",
+        path
+      ),
+      call. = FALSE
+    )
+  }
+
+  if (!length(existing)) {
+    if (isTRUE(required)) {
+      stop(
+        sprintf(
+          "Missing IASI configuration in '%s': expected _iasi.yml or .iasi.yml.",
+          path
+        ),
+        call. = FALSE
+      )
+    }
+
+    return(NULL)
+  }
+
+  existing[[1L]]
+}
+
 .is_iasi_publication = function(path) {
   quarto_file = file.path(path, "_quarto.yml")
-  iasi_file = file.path(path, "_iasi.yml")
 
   if (!file.exists(quarto_file)) {
     return(FALSE)
   }
 
-  if (!file.exists(iasi_file)) {
+  iasi_file = .iasi_config_file(path)
+
+  if (is.null(iasi_file)) {
     return(FALSE)
   }
 
   type = .quarto_project_type(path)
-  required_files = .required_iasi_files(type)
-
-  if (!length(required_files)) {
-    return(FALSE)
-  }
-
-  if (!all(
-    file.exists(
-      file.path(
-        path,
-        required_files
-      )
-    )
-  )) {
-    return(FALSE)
-  }
-
-  TRUE
+  type %in% c("website", "book")
 }
 
 .quarto_project_type = function(path) {
@@ -63,33 +86,32 @@
   as.character(type)
 }
 
-.required_iasi_files = function(type) {
-  switch(
-    type,
-    website = c(
-      "_quarto.yml",
-      "_iasi.yml"
-    ),
-    book = c(
-      "_quarto.yml",
-      "_iasi.yml"
-    ),
-    character()
-  )
-}
-
 .find_iasi_publications = function(path) {
   files = list.files(
     path = path,
     recursive = TRUE,
     full.names = TRUE,
-    all.files = FALSE,
+    all.files = TRUE,
     include.dirs = FALSE
   )
 
-  iasi_files = files[basename(files) == "_iasi.yml"]
-  relative = vapply(iasi_files, .relative_path, character(1), root = path)
-  iasi_files = iasi_files[!grepl("(^|/)tests(/|$)", relative)]
+  iasi_files = files[basename(files) %in% .iasi_config_names()]
+
+  if (!length(iasi_files)) return(character())
+
+  relative = vapply(
+    iasi_files,
+    .relative_path,
+    character(1),
+    root = path
+  )
+
+  ignored = grepl(
+    "(^|/)(tests|\\.git|\\.iasi|outputs|releases)(/|$)",
+    relative
+  )
+
+  iasi_files = iasi_files[!ignored]
 
   if (!length(iasi_files)) return(character())
 
@@ -116,7 +138,6 @@
   )
 }
 
-
 .new_validation_plan = function(path, current, books) {
   plan = list(
     path = path,
@@ -141,7 +162,7 @@
 
   if (is.null(plan)) {
     quarto_file = file.path(path, "_quarto.yml")
-    iasi_file = file.path(path, "_iasi.yml")
+    iasi_file = .iasi_config_file(path)
 
     if (!file.exists(quarto_file)) {
       message("Status       : Not a Quarto project")
@@ -150,40 +171,25 @@
       return(invisible(NULL))
     }
 
-    if (!file.exists(iasi_file)) {
+    if (is.null(iasi_file)) {
       message("Status       : Not an IASI Quarto project")
-      message("Reason       : Missing _iasi.yml")
+      message("Reason       : Missing _iasi.yml or .iasi.yml")
 
       return(invisible(NULL))
     }
 
     type = .quarto_project_type(path)
-    required_files = .required_iasi_files(type)
 
     message(sprintf("Project type : %s", type))
 
-    if (!length(required_files)) {
+    if (!type %in% c("website", "book")) {
       message("Status       : Unsupported Quarto project type")
       message("Supported    : website, book")
 
       return(invisible(NULL))
     }
 
-    missing_files = required_files[
-      !file.exists(file.path(path, required_files))
-    ]
-
-
     message("Status       : Incomplete IASI Quarto project")
-
-    if (length(missing_files)) {
-      message("Missing      :")
-
-      for (file in missing_files) {
-        message(sprintf("  - %s", file))
-      }
-    }
-
     return(invisible(NULL))
   }
 

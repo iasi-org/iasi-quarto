@@ -256,10 +256,15 @@
   )
 }
 
-.source_fingerprint = function(project_path) {
+.source_fingerprint = function(project) {
+  configured = c(
+    basename(project$paths$outputs),
+    basename(project$paths$releases)
+  )
+
   .tree_fingerprint(
-    project_path,
-    exclude_directories = c(
+    project$path,
+    exclude_directories = unique(c(
       ".git",
       ".iasi",
       ".quarto",
@@ -267,24 +272,16 @@
       "_freeze",
       "_outputs",
       "node_modules",
-      "publish",
-      "publish.work"
-    )
+      configured
+    ))
   )
 }
 
-.output_fingerprint = function(project_path, source = "_outputs") {
-  source_path = if (grepl("^(/|[A-Za-z]:[/\\\\])", source)) {
-    source
-  } else {
-    file.path(
-      project_path,
-      source
-    )
-  }
-
+.output_fingerprint = function(project, source = NULL) {
+  source_path = .project_output_source(project, source)
   .tree_fingerprint(source_path)
 }
+
 
 .record_build_state = function(project) {
   formats = project$render_formats
@@ -293,13 +290,13 @@
     return(invisible(project))
   }
 
-  source = .source_fingerprint(project$path)
-  output = .output_fingerprint(project$path)
+  source = .source_fingerprint(project)
+  output = .output_fingerprint(project)
 
   if (is.null(output)) {
     stop(
       sprintf(
-        "Build completed for '%s' but '_outputs' does not exist.",
+        "Build completed for '%s' but the configured documentation output does not exist.",
         project$name
       ),
       call. = FALSE
@@ -331,13 +328,13 @@
   invisible(project)
 }
 
-.record_publish_state = function(project, source = "_outputs") {
+.record_publish_state = function(project, source = NULL) {
   if (!isTRUE(project$published)) {
     return(invisible(project))
   }
 
   output = .output_fingerprint(
-    project$path,
+    project,
     source = source
   )
 
@@ -373,7 +370,7 @@
   }
 
   state = .read_state(project$path)
-  source = .source_fingerprint(project$path)
+  source = .source_fingerprint(project)
   format_state = state$build$formats
 
   if (is.null(format_state) || !is.list(format_state)) {
@@ -395,7 +392,7 @@
     return(TRUE)
   }
 
-  current_output = .output_fingerprint(project$path)
+  current_output = .output_fingerprint(project)
   recorded_output = state$build$output
 
   is.null(current_output) ||
@@ -406,9 +403,9 @@
     )
 }
 
-.publish_required = function(project, source = "_outputs") {
+.publish_required = function(project, source = NULL) {
   current_output = .output_fingerprint(
-    project$path,
+    project,
     source = source
   )
 

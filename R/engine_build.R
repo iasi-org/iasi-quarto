@@ -294,7 +294,7 @@
 .write_html_exports = function(project) {
   profiles = .resolve_project_build_formats(project, "all", warn = FALSE)
   profiles = setdiff(profiles, "html")
-  profiles = profiles[dir.exists(file.path(project$path, "_outputs", profiles))]
+  profiles = profiles[dir.exists(file.path(project$paths$docs, profiles))]
 
   labels = c(
     single = "HTML",
@@ -367,7 +367,7 @@
     )
   }
 
-  path = file.path(project$path, "_outputs", "html", "exports.json")
+  path = file.path(project$paths$docs, "html", "exports.json")
   .write_if_changed(content, path)
   invisible(path)
 }

@@ -12,7 +12,7 @@
 #'
 #' @return Invisibly returns the same `iasi_quarto_plan`, enriched with a
 #'   `projects` list containing one `iasi_quarto_project` per publication.
-#'   
+#'
 .discover = function(plan) {
   .assert_plan(plan)
 
@@ -34,9 +34,9 @@
     "_quarto.yml"
   )
 
-  iasi_file = file.path(
+  iasi_file = .iasi_config_file(
     project_path,
-    "_iasi.yml"
+    required = TRUE
   )
 
   quarto = .read_yaml_file(quarto_file)
@@ -57,24 +57,38 @@
     type = type
   )
 
+  publication = .yaml_section(
+    iasi,
+    "publication"
+  )
+
+  paths = .resolve_project_paths(
+    project_path,
+    .yaml_section(iasi, "paths")
+  )
 
   project = list(
     name = basename(project_path),
     path = project_path,
+    paths = paths,
     quarto_file = .normalise_project_path(quarto_file),
     iasi_file = .normalise_project_path(iasi_file),
     type = type,
-    strategy = iasi$strategy,
-    version = iasi$version,
-    content_dir = iasi$content_dir,
+    strategy = .yaml_field(publication, "strategy"),
+    version = .yaml_field(publication, "version"),
+    content_dir = .yaml_field(publication, "content-dir"),
     content_path = .content_path(
       project_path,
-      iasi$content_dir
+      .yaml_field(publication, "content-dir")
     ),
-    numbered = iasi$numbered,
-    html_landing_page = iasi$html_landing_page,
+    numbered = .yaml_field(publication, "numbered"),
+    html_landing_page = .yaml_field(
+      .yaml_section(publication, "html"),
+      "landing-page"
+    ),
     quarto = quarto,
-    iasi = iasi_source
+    iasi = iasi,
+    iasi_source = iasi_source
   )
 
   class(project) = c(
@@ -110,50 +124,50 @@
 }
 
 .normalise_iasi_config = function(source, type) {
-  publication = .yaml_section(
-    source,
-    "publication"
-  )
-
   is_book = identical(type, "book")
 
-  list(
-    version = .yaml_field(
-      publication,
-      "version"
+  defaults = list(
+    publication = list(
+      strategy = "regular",
+      `content-dir` = if (is_book) "chapters" else NULL,
+      numbered = if (is_book) TRUE else NULL,
+      html = list(
+        `landing-page` = FALSE
+      )
     ),
-    strategy = .value_or_default(
-      .yaml_field(
-        publication,
-        "strategy"
-      ),
-      "regular"
-    ),
-    content_dir = .value_or_default(
-      .yaml_field(
-        publication,
-        "content-dir"
-      ),
-      if (is_book) "chapters" else NULL
-    ),
-    numbered = .value_or_default(
-      .yaml_field(
-        publication,
-        "numbered"
-      ),
-      if (is_book) TRUE else NULL
-    ),
-    html_landing_page = .value_or_default(
-      .yaml_field(
-        .yaml_section(
-          publication,
-          "html"
-        ),
-        "landing-page"
-      ),
-      FALSE
+    paths = list(
+      inputs = "inputs",
+      orchestration = "orchestration",
+      outputs = "outputs",
+      releases = "releases"
     )
   )
+
+  .merge_iasi_defaults(source, defaults)
+}
+
+.merge_iasi_defaults = function(source, defaults) {
+  if (!is.list(source)) {
+    return(source)
+  }
+
+  result = source
+
+  for (name in names(defaults)) {
+    default = defaults[[name]]
+    value = result[[name]]
+
+    if (is.null(value)) {
+      result[[name]] = default
+      next
+    }
+
+    if (is.list(default) && is.list(value)) {
+      result[[name]] = .merge_iasi_defaults(value, default)
+    }
+  }
+
+  result
 }
 
 .project_format_type = function(project, format) {

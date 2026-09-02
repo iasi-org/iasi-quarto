@@ -1,11 +1,10 @@
 #' Prepare IASI Quarto outputs for deployment
 #'
-#' Prepares a rendered output tree as a deployable `publish/` package. HTML
+#' Prepares a rendered output tree as a deployable publication package. HTML
 #' contents are placed directly in the publication root, while every other
-#' rendered format keeps its own subdirectory. Publication is prepared first in
-#' `publish.work/`; only after preparation succeeds does it replace the existing
-#' `publish/` tree. The default source is `_outputs/`, but another source
-#' directory can be selected explicitly.
+#' rendered format keeps its own subdirectory. The source and destination roots
+#' are resolved from the effective IASI project configuration. Another source
+#' directory can still be selected explicitly.
 #'
 #' After copying, `publish()` scans every `index.html` inside the published tree.
 #' When an IASI export anchor is present, it is replaced by an Export dropdown
@@ -18,8 +17,9 @@
 #'   selected by its complete directory name, its name without the numeric
 #'   prefix, or its numeric prefix. Use `"all"` or `NULL` to publish every
 #'   publication. This argument is ignored when `path` is itself a publication.
-#' @param source Output directory to copy, relative to each publication root by
-#'   default. Absolute paths are also accepted. Defaults to `_outputs`.
+#' @param source Optional output directory to copy. Relative paths are resolved
+#'   against each publication root and absolute paths are accepted. When `NULL`,
+#'   uses the project's configured IASI documentation output path.
 #' @param path IASI Quarto publication or multiproject directory.
 #' @param force Explicitly requests a complete publication pass. `publish()`
 #'   already republishes the selected output unconditionally; this argument is
@@ -30,7 +30,7 @@
 #'   when `path` does not appear to be an IASI Quarto workspace.
 #'
 #' @export
-publish = function(book = NULL, source = "_outputs", path = ".", force = FALSE) {
+publish = function(book = NULL, source = NULL, path = ".", force = FALSE) {
   started_at = Sys.time()
   plan = validate(path)
   if (is.null(plan)) return(invisible(NULL))

@@ -4,7 +4,7 @@
 \alias{publish}
 \title{Prepare IASI Quarto outputs for deployment}
 \usage{
-publish(book = NULL, source = "_outputs", path = ".", force = FALSE)
+publish(book = NULL, source = NULL, path = ".", force = FALSE)
 }
 \arguments{
 \item{book}{Publication or publications to publish. A publication can be
@@ -12,8 +12,9 @@ selected by its complete directory name, its name without the numeric
 prefix, or its numeric prefix. Use \code{"all"} or \code{NULL} to publish every
 publication. This argument is ignored when \code{path} is itself a publication.}
 
-\item{source}{Output directory to copy, relative to each publication root by
-default. Absolute paths are also accepted. Defaults to \verb{_outputs}.}
+\item{source}{Optional output directory to copy. Relative paths are resolved
+against each publication root and absolute paths are accepted. When \code{NULL},
+uses the project's configured IASI documentation output path.}
 
 \item{path}{IASI Quarto publication or multiproject directory.}
 
@@ -27,12 +28,11 @@ Invisibly returns the completed \code{iasi_quarto_plan}. Returns \code{NULL}
 when \code{path} does not appear to be an IASI Quarto workspace.
 }
 \description{
-Prepares a rendered output tree as a deployable \verb{publish/} package. HTML
+Prepares a rendered output tree as a deployable publication package. HTML
 contents are placed directly in the publication root, while every other
-rendered format keeps its own subdirectory. Publication is prepared first in
-\verb{publish.work/}; only after preparation succeeds does it replace the existing
-\verb{publish/} tree. The default source is \verb{_outputs/}, but another source
-directory can be selected explicitly.
+rendered format keeps its own subdirectory. The source and destination roots
+are resolved from the effective IASI project configuration. Another source
+directory can still be selected explicitly.
 }
 \details{
 After copying, \code{publish()} scans every \code{index.html} inside the published tree.

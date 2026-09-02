@@ -1,15 +1,15 @@
 .export_formats = c(single = "HTML", pdf = "PDF", pdfua = "PDF/UA", epub = "EPUB", docx = "DOCX", odt = "ODT", git = "GitBook")
 
-.publish_project = function(project, source = "_outputs") {
-  destination = file.path(project$path, "publish")
+.publish_project = function(project, source = NULL) {
+  destination = project$paths$publish
   .publish_project_to(project, source, destination, clean = TRUE)
 }
 
 .publish_deploy_project = function(project,
                                     root,
                                     books,
-                                    source = "_outputs") {
-  publish_path = file.path(root, "publish")
+                                    source = NULL) {
+  publish_path = .default_project_paths(root)$publish
   prefix = .numbered_prefix(project$path)
   slug = sub("^[0-9]+-", "", basename(project$path))
 
@@ -153,9 +153,9 @@
   project
 }
 
-.publish_numbered_project = function(plan, source = "_outputs") {
+.publish_numbered_project = function(plan, source = NULL) {
   project = plan$projects[[1L]]
-  publish_path = file.path(dirname(plan$path), "publish")
+  publish_path = .default_project_paths(dirname(plan$path))$publish
   slug = sub("^[0-9]+-", "", basename(project$path))
   destination = if (identical(.numbered_prefix(project$path), 0L)) publish_path else file.path(publish_path, slug)
 
@@ -169,8 +169,8 @@
   plan
 }
 
-.publish_multiproject = function(plan, source = "_outputs") {
-  publish_path = file.path(plan$path, "publish")
+.publish_multiproject = function(plan, source = NULL) {
+  publish_path = .default_project_paths(plan$path)$publish
   work_path = paste0(publish_path, ".work")
   prefixes = vapply(plan$projects, function(project) .numbered_prefix(project$path), integer(1))
   slugs = vapply(plan$projects, function(project) sub("^[0-9]+-", "", basename(project$path)), character(1))
@@ -203,7 +203,7 @@
 }
 
 .publish_project_to = function(project, source, destination, clean = TRUE) {
-  source_path = .publish_source_path(project$path, source)
+  source_path = .publish_source_path(project, source)
   .check_publish_tree(source_path, destination, project$name)
 
   if (clean) {
@@ -229,18 +229,24 @@
 }
 
 .prepare_publish_tree = function(source, destination, project) {
+   message("- Preparando árbol de publicación...")
    .copy_directory_contents(source, destination)
 
    formats = .published_directories(destination)
    publication = .publication_info(project)
 
+   message(sprintf("- Normalizando salida [%s]...", project$strategy))
    .normalise_publish_tree(destination, project, formats)
 
+   message("- Organizando formatos...")
    .move_publish_html_to_root(destination)
    .normalise_publish_exports(destination)
    .sync_export_anchors(destination)
+
+   message("- Aplicando metadatos...")
    .normalise_publication(destination, project, formats, publication)
    .write_publish_timestamp(destination, publication$stamp)
+   message("- Publicación preparada.")
 
    invisible(TRUE)
 }
@@ -257,13 +263,9 @@
   invisible(TRUE)
 }
 
-.publish_source_path = function(project_path, source) {
-  if (!is.character(source) || length(source) != 1L || is.na(source) || !nzchar(source)) stop("`source` must be one non-empty directory path.", call. = FALSE)
-  if (.is_absolute_path(source)) return(source)
-  file.path(project_path, source)
+.publish_source_path = function(project, source = NULL) {
+  .project_output_source(project, source)
 }
-
-.is_absolute_path = function(path) grepl("^(/|[A-Za-z]:[/\\\\])", path)
 
 .check_publish_tree = function(source, destination, project) {
   if (!dir.exists(source)) stop(sprintf("Publish source does not exist for project '%s': %s.", project, source), call. = FALSE)

@@ -22,7 +22,7 @@ Generates the derived files required by every checked publication.
 discover, check or render publications.
 
 For book publications, preparation depends on the IASI publication strategy.
-\code{regular}, \code{structured}, and \code{direct} books generate the derived book
+\code{regular}, \code{structured}, \code{parted}, and \code{direct} books generate the derived book
 structure required by Quarto.
 
 Website publications currently require no derived artifacts and preparation

@@ -117,7 +117,7 @@ deploy = function(book = NULL, format = NULL, path = ".", force = FALSE) {
         publish_result$projects = list(project)
         publish_result$published = isTRUE(project$published)
         publish_result$publish_path = .normalise_project_path(
-          file.path(plan$path, "publish")
+          .default_project_paths(plan$path)$publish
         )
         publish_result$elapsed = as.numeric(
           difftime(

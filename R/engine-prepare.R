@@ -6,7 +6,7 @@
 #' discover, check or render publications.
 #'
 #' For book publications, preparation depends on the IASI publication strategy.
-#' `regular`, `structured`, and `direct` books generate the derived book
+#' `regular`, `structured`, `parted`, and `direct` books generate the derived book
 #' structure required by Quarto.
 #'
 #' Website publications currently require no derived artifacts and preparation
