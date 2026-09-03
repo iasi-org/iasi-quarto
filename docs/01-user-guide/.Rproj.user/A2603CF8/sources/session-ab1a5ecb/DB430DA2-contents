@@ -1,0 +1,19 @@
+# _quarto-pdf.yml
+project:
+  output-dir: _outputs/pdf
+
+format:
+  pdf:
+    toc: true
+    number-sections: true
+    include-in-header:
+      text: |
+        \usepackage{scrlayer-scrpage}
+
+        \clearpairofpagestyles
+
+        \ifoot{\footnotesize © 2026 Javier G. Grandez · IASI Rocks 🤘}
+        \cfoot{\footnotesize v0.2.1 · Publicado: 25/08/2026}
+        \ofoot{\footnotesize \pagemark}
+
+        \pagestyle{scrheadings}

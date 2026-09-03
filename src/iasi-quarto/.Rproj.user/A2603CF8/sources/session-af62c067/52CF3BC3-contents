@@ -1,0 +1,28 @@
+Package: iasi.quarto
+Type: Package
+Title: Build System for Quarto Publications
+Version: 0.10.0
+Authors@R: person(
+    given = "Javier",
+    family = "G. Grandez",
+    email = "jggrandez@gmail.com",
+    role = c("aut", "cre")
+    )
+Description: Discovers, validates, builds, and renders Quarto publications
+    from their project structure. The package recognizes structured, regular,
+    and direct publication models, generates the Quarto artifacts required by
+    each model, and keeps construction separate from rendering.
+License: MIT + file LICENSE
+Encoding: UTF-8
+Language: en
+LazyData: true
+Depends:
+    R (>= 4.2.0)
+Imports:
+    utils, yaml, pdftools, qpdf
+Roxygen: list(markdown = TRUE)
+Suggests: 
+     testthat (>= 3.0.0)
+    ,withr
+Config/testthat/edition: 3
+Config/roxygen2/version: 8.1.0

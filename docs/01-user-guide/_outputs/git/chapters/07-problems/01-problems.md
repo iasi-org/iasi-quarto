@@ -1,0 +1,55 @@
+
+
+## La publicación no se reconoce
+
+Compruebe primero que se encuentra en la ruta correcta y que la publicación contiene la configuración de Quarto y `_iasi.yml`.
+
+Ejecute:
+
+``` r
+validate()
+```
+
+## Un formato no se genera
+
+Compruebe que existe su perfil Quarto, por ejemplo:
+
+``` text
+_quarto-pdf.yml
+```
+
+También debe disponer de las dependencias que necesite el formato. PDF, por ejemplo, puede requerir una instalación TeX funcional.
+
+## He cambiado la herramienta pero no los fuentes
+
+El estado incremental puede considerar que los fuentes están al día aunque una nueva versión de `iasi.quarto` cambie el resultado o el postprocesado.
+
+En ese caso utilice:
+
+``` r
+deploy(force = TRUE)
+```
+
+## Quiero reconstruir sin publicar
+
+Utilice:
+
+``` r
+build()
+```
+
+## Quiero publicar lo que ya está construido
+
+Utilice:
+
+``` r
+publish()
+```
+
+## Quiero mantener la publicación al día automáticamente
+
+Utilice:
+
+``` r
+deploy()
+```

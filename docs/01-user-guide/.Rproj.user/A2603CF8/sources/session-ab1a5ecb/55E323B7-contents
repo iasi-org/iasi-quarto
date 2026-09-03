@@ -1,0 +1,9 @@
+project:
+  output-dir: _outputs/git
+
+format:
+  commonmark:
+    markdown-headings: atx
+    wrap: none
+    toc: false
+    number-sections: false

@@ -1,0 +1,14 @@
+# _quarto-single.yml
+
+project:
+  output-dir: _outputs/single
+
+format:
+  html:
+    embed-resources: true
+    theme:
+      - cosmo
+      - resources/css/iasi.scss
+      - resources/css/book.scss
+    toc: true
+    number-sections: true
