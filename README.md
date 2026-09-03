@@ -4,7 +4,7 @@
 
 > Framework de ingeniería documental basado en Quarto.
 
-`iasi.quarto` forma parte del ecosistema **IASI (Ingeniería Asistida por Sistemas Inteligentes)** y proporciona una infraestructura reutilizable para la generación de libros, documentación técnica y publicaciones profesionales basadas en Quarto.
+`iasi.quarto` forma parte del ecosistema **IASI (Ingeniería Aumentada por Sistemas Inteligentes)** y proporciona una infraestructura reutilizable para la generación de libros, documentación técnica y publicaciones profesionales basadas en Quarto.
 
 Su objetivo es separar el contenido de la infraestructura necesaria para construirlo.
 

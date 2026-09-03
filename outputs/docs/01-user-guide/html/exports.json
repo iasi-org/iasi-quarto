@@ -1,0 +1,6 @@
+{
+  "exports": [
+    {"profile": "pdf", "text": "PDF", "icon": "file-earmark-pdf", "href": "../pdf/01-user-guide.pdf"},
+    {"profile": "git", "text": "GitBook", "icon": "book", "href": "../git/README.md"}
+  ]
+}

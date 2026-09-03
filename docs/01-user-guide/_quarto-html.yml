@@ -1,0 +1,60 @@
+# _quarto-html.yml
+project:
+  output-dir: _outputs/html
+  resources:
+    - resources/images/ants.png
+
+website:
+  announcement:
+    dismissable: false
+    content: "![](resources/images/ants.png){.iasi-ants-image}"
+    type: light
+    position: above-navbar
+
+format:
+  html:
+    include-in-header: resources/js/iasi.html
+    theme:
+      - cosmo
+      - resources/css/iasi.scss
+      - resources/css/book.scss
+    toc: true
+    number-sections: true
+
+book:
+  navbar:
+    title: "User Guide"
+    pinned: true
+    left:
+      - text: "Definiciones"
+        href: chapters/01-definitions/index.qmd
+      - text: "Instalación"
+        href: chapters/02-installation/index.qmd
+      - text: "Publicaciones"
+        href: chapters/03-publications/index.qmd
+      - text: "Formatos"
+        href: chapters/04-formats/index.qmd
+      - text: "Construir y publicar"
+        href: chapters/05-operations/index.qmd
+      - text: "Multiproyectos"
+        href: chapters/06-multiproject/index.qmd
+      - text: "Problemas"
+        href: chapters/07-problems/index.qmd
+    right:
+      - icon: download
+        text: "Guardar ..."
+        menu:
+         - text: "Guardar ..."
+           href: "#iasi-exports"
+
+      - icon: translate
+        href: https://iasi-org.github.io/iasi-home/pages/common/manifesto-bilingual.html
+        aria-label: "Idioma / Language"
+
+      - icon: envelope
+        href: https://iasi-org.github.io/iasi-home/pages/common/contact.html
+        aria-label: "Contacto"        
+
+  page-footer:
+    left: "© 2026 Javier G. Grandez · IASI Rocks 🤘"
+    right: '<span id="iasi-publish-date"></span>'
