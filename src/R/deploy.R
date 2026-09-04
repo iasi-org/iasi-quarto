@@ -16,8 +16,10 @@
 #'   rules as [build()] and [publish()].
 #' @param format Output format or formats to keep current. Uses the same
 #'   selection rules as [build()].
-#' @param dest Publication directory relative to each selected Quarto project.
-#'   The first path component must start with `_`. Defaults to `_publish`.
+#' @param dest Generated publication directory below each project's
+#'   `output-dir`. When no `output-dir` is declared, it is created below the
+#'   project root. The first path component must start with `_`. Defaults to
+#'   `_publish`.
 #' @param path IASI Quarto publication or multiproject directory.
 #' @param force When `TRUE`, freshness is still evaluated but both build and
 #'   publish are executed for every selected publication. Validation and

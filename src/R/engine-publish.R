@@ -28,8 +28,28 @@
   do.call(file.path, as.list(parts))
 }
 
+.publish_destination_root = function(project) {
+  output_dir = .yaml_field(
+    .yaml_section(project$quarto, "project"),
+    "output-dir"
+  )
+
+  if (!.valid_output_dir(output_dir)) {
+    return(project$path)
+  }
+
+  if (.is_absolute_path(output_dir)) {
+    return(output_dir)
+  }
+
+  file.path(project$path, output_dir)
+}
+
 .publish_destination_path = function(project, dest) {
-  file.path(project$path, .validate_publish_dest(dest))
+  file.path(
+    .publish_destination_root(project),
+    .validate_publish_dest(dest)
+  )
 }
 
 .publish_project = function(project, source = NULL, dest = "_publish") {
@@ -48,12 +68,22 @@
     completed = FALSE
     on.exit(if (!completed && dir.exists(work_path)) unlink(work_path, recursive = TRUE, force = TRUE), add = TRUE)
 
-    .prepare_publish_tree(source_path, work_path, project)
+    .prepare_publish_tree(
+      source_path,
+      work_path,
+      project,
+      exclude = c(destination, work_path)
+    )
     .replace_publish_tree(work_path, destination)
     completed = TRUE
   } else {
     dir.create(destination, recursive = TRUE, showWarnings = FALSE)
-    .prepare_publish_tree(source_path, destination, project)
+    .prepare_publish_tree(
+      source_path,
+      destination,
+      project,
+      exclude = destination
+    )
   }
 
   project$publish_path = .normalise_project_path(destination)
@@ -63,9 +93,9 @@
   project
 }
 
-.prepare_publish_tree = function(source, destination, project) {
+.prepare_publish_tree = function(source, destination, project, exclude = character()) {
    message("- Preparando árbol de publicación...")
-   .copy_directory_contents(source, destination)
+   .copy_directory_contents(source, destination, exclude = exclude)
 
    formats = .published_directories(destination)
    publication = .publication_info(project)
@@ -109,15 +139,35 @@
   destination_path = normalizePath(destination, winslash = "/", mustWork = FALSE)
   source_key = tolower(source_path)
   destination_key = tolower(destination_path)
-  overlaps = identical(source_key, destination_key) || startsWith(paste0(source_key, "/"), paste0(destination_key, "/")) || startsWith(paste0(destination_key, "/"), paste0(source_key, "/"))
-  if (overlaps) stop(sprintf("Publish source overlaps destination for project '%s'.", project), call. = FALSE)
+  invalid_overlap = identical(source_key, destination_key) ||
+    startsWith(paste0(source_key, "/"), paste0(destination_key, "/"))
+
+  if (invalid_overlap) {
+    stop(sprintf("Publish source overlaps destination for project '%s'.", project), call. = FALSE)
+  }
 
   invisible(TRUE)
 }
 
 .published_directories = function(path) {
-  entries = list.dirs(path, recursive = FALSE, full.names = FALSE)
-  entries[nzchar(entries)]
+  entries = list.files(
+    path,
+    recursive = FALSE,
+    full.names = TRUE,
+    all.files = TRUE,
+    no.. = TRUE
+  )
+  entries = entries[dir.exists(entries)]
+
+  if (!length(entries)) return(character())
+
+  generated = vapply(
+    entries,
+    function(entry) file.exists(file.path(entry, ".publish")),
+    logical(1)
+  )
+
+  basename(entries[!generated])
 }
 
 .sync_export_anchors = function(publish_path) {
@@ -228,8 +278,35 @@
   invisible(TRUE)
 }
 
-.copy_directory_contents = function(from, to) {
+.copy_directory_contents = function(from, to, exclude = character()) {
   entries = list.files(from, full.names = TRUE, all.files = TRUE, no.. = TRUE)
+  if (!length(entries)) return(invisible(TRUE))
+
+  if (length(exclude)) {
+    exclude = tolower(normalizePath(
+      exclude,
+      winslash = "/",
+      mustWork = FALSE
+    ))
+
+    entry_keys = tolower(normalizePath(
+      entries,
+      winslash = "/",
+      mustWork = FALSE
+    ))
+
+    entries = entries[!entry_keys %in% exclude]
+  }
+
+  if (length(entries)) {
+    generated = vapply(
+      entries,
+      function(entry) dir.exists(entry) && file.exists(file.path(entry, ".publish")),
+      logical(1)
+    )
+    entries = entries[!generated]
+  }
+
   if (!length(entries)) return(invisible(TRUE))
 
   copied = file.copy(entries, to, recursive = TRUE, overwrite = TRUE, copy.mode = FALSE, copy.date = TRUE)

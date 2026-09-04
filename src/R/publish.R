@@ -3,8 +3,9 @@
 #' Prepares a rendered output tree as a deployable publication package. HTML
 #' contents are placed directly in the publication root, while every other
 #' rendered format keeps its own subdirectory. The source can be selected
-#' explicitly, while the destination is always resolved relative to each
-#' publication root.
+#' explicitly. The destination is resolved below the project `output-dir`
+#' declared in `_quarto.yml`; when no `output-dir` is declared, it is resolved
+#' below the project root.
 #'
 #' After copying, `publish()` scans every `index.html` inside the published tree.
 #' When an IASI export anchor is present, it is replaced by an Export dropdown
@@ -20,9 +21,10 @@
 #' @param source Optional output directory to copy. Relative paths are resolved
 #'   against each publication root and absolute paths are accepted. When `NULL`,
 #'   infers the common root of the declared Quarto profile outputs.
-#' @param dest Publication directory relative to each publication root. It must
-#'   start with `_` so Quarto ignores the generated tree as project input.
-#'   Defaults to `_publish`.
+#' @param dest Generated publication directory below the project `output-dir`.
+#'   When no `output-dir` is declared, it is created below the project root.
+#'   It must start with `_` so Quarto ignores the generated tree as project
+#'   input. Defaults to `_publish`.
 #' @param path IASI Quarto publication or multiproject directory.
 #' @param force Explicitly requests a complete publication pass. `publish()`
 #'   already republishes the selected output unconditionally; this argument is
