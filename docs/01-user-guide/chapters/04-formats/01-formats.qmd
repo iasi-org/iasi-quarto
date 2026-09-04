@@ -1,0 +1,74 @@
+## Formatos disponibles
+
+IASI Quarto reconoce actualmente los siguientes formatos de construcción:
+
+```{r}
+#| echo: false
+#| warning: false
+#| message: false
+
+formats = data.frame(
+  Formato = c("html", "pdf", "typst", "epub", "doc", "odt", "git"),
+  "Resultado habitual" = c(
+    "Publicación HTML",
+    "PDF generado por Quarto",
+    "PDF mediante Typst",
+    "Libro EPUB",
+    "Documento ODT presentado como formato DOC de IASI Quarto",
+    "Documento ODT",
+    "GitBook"
+  ),
+  check.names = FALSE
+)
+
+knitr::kable(
+  formats,
+  align = c("l", "l")
+)
+```
+
+Un Website utiliza HTML. Un Book puede utilizar cualquiera de los formatos soportados que tenga configurados.
+
+El formato `git` representa una publicación **GitBook**. `gfm` no es un formato soportado por IASI Quarto.
+
+## Configurar un formato
+
+Cada formato se configura mediante su perfil Quarto correspondiente, por ejemplo:
+
+```text
+_quarto-html.yml
+_quarto-pdf.yml
+_quarto-epub.yml
+```
+
+IASI Quarto no sustituye la configuración propia de Quarto para cada formato.
+
+## Construir un formato
+
+Para construir solo HTML:
+
+```r
+build(format = "html")
+```
+
+Para construir solo PDF:
+
+```r
+build(format = "pdf")
+```
+
+Puede solicitar varios formatos:
+
+```r
+build(format = c("html", "pdf"))
+```
+
+## Construcción predeterminada
+
+Si no indica `format`, IASI Quarto utiliza su conjunto predeterminado:
+
+```text
+html, pdf, epub, doc, git
+```
+
+Solo se construyen los formatos que estén disponibles en la publicación mediante sus perfiles correspondientes.

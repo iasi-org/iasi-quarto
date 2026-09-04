@@ -1,0 +1,10 @@
+book:
+  chapters:
+    - "index.qmd"
+    - "chapters/01-definitions/index.qmd"
+    - "chapters/02-installation/index.qmd"
+    - "chapters/03-publications/index.qmd"
+    - "chapters/04-formats/index.qmd"
+    - "chapters/05-operations/index.qmd"
+    - "chapters/06-multiproject/index.qmd"
+    - "chapters/07-problems/index.qmd"

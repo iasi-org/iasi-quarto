@@ -1,0 +1,71 @@
+## Definiciones y conceptos
+
+En este documento se utilizan los siguientes términos y conceptos. Las definiciones se presentan en orden alfabético para facilitar su consulta.
+
+```{r}
+#| echo: false
+#| warning: false
+#| message: false
+
+definitions = data.frame(
+  Término = c(
+    "Build",
+    "Capítulo",
+    "Direct",
+    "Deploy",
+    "Estrategia",
+    "Force",
+    "Formato",
+    "GitBook",
+    "Libro",
+    "Multiproyecto",
+    "Parte",
+    "Proyecto Quarto",
+    "Publicación",
+    "Publish",
+    "Quarto",
+    "Regular",
+    "Sección",
+    "Structured",
+    "Website"
+  ),
+  Definición = c(
+    "Operación que construye uno o varios formatos de una publicación a partir de sus fuentes. Por defecto, los resultados se escriben en _outputs/; la ubicación puede configurarse. Véase: Formato.",
+    "Unidad principal de contenido de un libro. Puede estar organizado en secciones.",
+    "Estrategia de libro en la que cada documento .qmd del contenido se publica como capítulo y las carpetas se utilizan únicamente para organizar físicamente los archivos. Véase: Estrategia.",
+    "Operación que mantiene una publicación al día: construye cuando es necesario y publica cuando el resultado construido ha cambiado. Puede ejecutarse en modo forzado. Véase: Force y Publish.",
+    "Regla que determina cómo interpreta IASI Quarto la organización física de un libro. Las estrategias de libro son regular, structured y direct.",
+    "Modo explícito que ordena ejecutar la operación completa sin consultar si el estado previo indica que es necesaria. No evita las validaciones ni convierte operaciones Git en operaciones forzadas.",
+    "Tipo de salida que puede generar una publicación, por ejemplo HTML, PDF o EPUB.",
+    "Formato de publicación de IASI Quarto para generar un libro destinado a GitBook. Se selecciona mediante el formato `git`. Véase: Formato.",
+    "Publicación Quarto de tipo book. IASI Quarto admite las estrategias regular, structured y direct para libros. Véase: Publicación.",
+    "Espacio de trabajo que contiene varias publicaciones IASI Quarto y permite operar sobre todas o seleccionar una de ellas. Véase: Publicación.",
+    "División de alto nivel de un libro utilizada para agrupar capítulos relacionados. En la estrategia structured, una carpeta de contenido representa una Parte. Véase: Structured.",
+    "Proyecto reconocido por Quarto mediante su configuración habitual, incluida _quarto.yml.",
+    "Proyecto Quarto gestionado por IASI Quarto mediante _iasi.yml. Puede ser un Website o un Libro. Véase: Website.",
+    "Operación que toma los resultados ya construidos y crea el árbol final publish/ preparado para desplegarse. No vuelve a renderizar los fuentes.",
+    "Motor de publicación que procesa los documentos .qmd y genera los formatos finales. IASI Quarto organiza y coordina el proyecto, pero Quarto continúa siendo el motor de renderizado.",
+    "Estrategia de libro en la que cada carpeta de contenido se convierte en una unidad o capítulo y los documentos .qmd que contiene se combinan en el index.qmd generado de esa carpeta. Véase: Estrategia.",
+    "División principal dentro de un capítulo.",
+    "Estrategia de libro en la que cada carpeta de contenido representa una Parte, su index.qmd presenta esa Parte y los demás documentos .qmd de la carpeta son Capítulos. Véase: Estrategia.",
+    "Publicación Quarto de tipo website. En IASI Quarto utiliza la estrategia regular."
+  ),
+  check.names = FALSE
+)
+
+if (knitr::is_html_output() && requireNamespace("kableExtra", quietly = TRUE)) {
+  knitr::kable(
+    definitions,
+    format = "html",
+    align = c("l", "l")
+  ) |>
+    kableExtra::kable_styling(full_width = TRUE) |>
+    kableExtra::column_spec(1, width = "18%", bold = TRUE) |>
+    kableExtra::column_spec(2, width = "82%")
+} else {
+  knitr::kable(
+    definitions,
+    align = c("l", "l")
+  )
+}
+```

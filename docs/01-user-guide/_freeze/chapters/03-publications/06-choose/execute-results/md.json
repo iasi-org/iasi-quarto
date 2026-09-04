@@ -1,0 +1,15 @@
+{
+  "hash": "3089b95c125c8920707a6c7c06292f2e",
+  "result": {
+    "engine": "knitr",
+    "markdown": "## Elegir una estrategia\n\n\n::: {.cell}\n::: {.cell-output-display}\n\n\n|Si necesita...                                                   |Estrategia |\n|:----------------------------------------------------------------|:----------|\n|Un Website Quarto                                                |regular    |\n|Combinar varios archivos .qmd de una carpeta en una única unidad |regular    |\n|Representar Partes que contienen Capítulos                       |structured |\n|Publicar cada archivo .qmd directamente como Capítulo            |direct     |\n\n\n:::\n:::\n\n\nLa elección es editorial. No depende del formato final: un mismo libro puede utilizar la misma estrategia para HTML, PDF, EPUB y otros formatos.\n",
+    "supporting": [],
+    "filters": [
+      "rmarkdown/pagebreak.lua"
+    ],
+    "includes": {},
+    "engineDependencies": {},
+    "preserve": null,
+    "postProcess": false
+  }
+}
