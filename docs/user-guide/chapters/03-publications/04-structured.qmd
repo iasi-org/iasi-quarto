@@ -1,0 +1,41 @@
+## Crear un Book Structured
+
+`structured` representa explícitamente Partes y Capítulos.
+
+La regla es:
+
+```text
+carpeta de contenido
+    → Parte
+
+index.qmd de la carpeta
+    → presentación de la Parte
+
+demás .qmd de la carpeta
+    → Capítulos
+```
+
+Ejemplo:
+
+```text
+chapters/
+└── 20-methodologies/
+    ├── index.qmd
+    ├── 01-history.qmd
+    └── 02-current.qmd
+```
+
+En `_iasi.yml`:
+
+```yaml
+publication:
+  strategy: structured
+  content-dir: chapters
+  numbered: true
+```
+
+A diferencia de `regular`, el `index.qmd` de cada carpeta es **fuente** y debe existir. IASI Quarto no lo genera a partir de otros documentos.
+
+`front-matter.quarto` no participa en la estrategia `structured`.
+
+Use `structured` cuando quiera que la jerarquía editorial Parte → Capítulo esté representada directamente por la estructura del proyecto.

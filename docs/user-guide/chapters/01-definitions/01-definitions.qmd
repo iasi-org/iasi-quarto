@@ -1,0 +1,75 @@
+## Definiciones y conceptos
+
+En este documento se utilizan los siguientes términos y conceptos. Las definiciones se presentan en orden alfabético para facilitar su consulta.
+
+```{r}
+#| echo: false
+#| warning: false
+#| message: false
+
+definitions = data.frame(
+  Término = c(
+    "Build",
+    "Capítulo",
+    "Direct",
+    "Deploy",
+    "Estrategia",
+    "Force",
+    "Formato",
+    "GitBook",
+    "Libro",
+    "Multiproyecto",
+    "Parte",
+    "Parted",
+    "Prepare",
+    "Proyecto Quarto",
+    "Publicación",
+    "Publish",
+    "Quarto",
+    "Regular",
+    "Sección",
+    "Structured",
+    "Website"
+  ),
+  Definición = c(
+    "Operación que construye uno o varios formatos de una publicación a partir de sus fuentes. Cuando no se configura otra ubicación, los resultados se escriben en _outputs/. Véase: Formato.",
+    "Unidad principal de contenido de un libro. Puede estar organizado en secciones.",
+    "Estrategia de libro en la que cada documento .qmd del contenido se publica como capítulo y las carpetas se utilizan únicamente para organizar físicamente los archivos. Véase: Estrategia.",
+    "Operación que mantiene una publicación al día: construye cuando es necesario y publica cuando el resultado construido ha cambiado. Puede ejecutarse en modo forzado. Véase: Force y Publish.",
+    "Regla que determina cómo interpreta IASI Quarto la organización física de una publicación. Los libros pueden utilizar las estrategias regular, structured, parted y direct.",
+    "Modo explícito que ordena ejecutar una operación aunque el estado previo indique que no es necesaria. No evita validaciones ni oculta errores.",
+    "Tipo de salida que puede generar una publicación, por ejemplo HTML, PDF o EPUB.",
+    "Formato de publicación de IASI Quarto para generar un libro destinado a GitBook. Se selecciona mediante el formato `git`. Véase: Formato.",
+    "Publicación Quarto de tipo book. Véase: Publicación.",
+    "Espacio de trabajo que contiene varias publicaciones IASI Quarto y permite operar sobre todas o seleccionar una de ellas. Comparte un único árbol _publish/ en la raíz del workspace. Véase: Publicación.",
+    "División de alto nivel de un libro utilizada para agrupar capítulos relacionados.",
+    "Estrategia de libro en la que cada carpeta superior representa una Parte y puede contener capítulos directos o subcarpetas de capítulo con su propio index.qmd y documentos asociados.",
+    "Operación que valida, descubre y comprueba una publicación y materializa los artefactos derivados que Quarto necesita, sin renderizar formatos.",
+    "Proyecto reconocido por Quarto mediante su configuración habitual, incluida _quarto.yml.",
+    "Proyecto Quarto gestionado por IASI Quarto mediante _iasi.yml. Puede ser un Website o un Libro. Véase: Website.",
+    "Operación que toma resultados ya construidos y materializa el árbol _publish/ preparado para una distribución posterior. No vuelve a renderizar las fuentes.",
+    "Motor de publicación que procesa los documentos .qmd y genera los formatos finales. IASI Quarto organiza y coordina el proyecto, pero Quarto continúa siendo el motor de renderizado.",
+    "Estrategia de libro en la que cada carpeta de contenido se convierte en una unidad o capítulo y los documentos .qmd que contiene se combinan en el index.qmd generado de esa carpeta. Véase: Estrategia.",
+    "División principal dentro de un capítulo.",
+    "Estrategia de libro en la que cada carpeta de contenido representa una Parte y sus documentos .qmd directos son capítulos de esa Parte. Véase: Estrategia.",
+    "Publicación Quarto de tipo website. En IASI Quarto utiliza la estrategia regular."
+  ),
+  check.names = FALSE
+)
+
+if (knitr::is_html_output() && requireNamespace("kableExtra", quietly = TRUE)) {
+  knitr::kable(
+    definitions,
+    format = "html",
+    align = c("l", "l")
+  ) |>
+    kableExtra::kable_styling(full_width = TRUE) |>
+    kableExtra::column_spec(1, width = "18%", bold = TRUE) |>
+    kableExtra::column_spec(2, width = "82%")
+} else {
+  knitr::kable(
+    definitions,
+    align = c("l", "l")
+  )
+}
+```

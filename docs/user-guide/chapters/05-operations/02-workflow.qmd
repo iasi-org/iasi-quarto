@@ -1,0 +1,38 @@
+## Flujo recomendado
+
+Durante la edición:
+
+```r
+build(format = "html")
+```
+
+Cuando quiera comprobar todos los formatos:
+
+```r
+build()
+```
+
+Cuando los resultados construidos ya son los que quiere publicar:
+
+```r
+publish()
+```
+
+Para el trabajo habitual una vez estabilizado el proyecto:
+
+```r
+deploy()
+```
+
+Y cuando haya cambiado la herramienta, una plantilla, una regla de postprocesado o cualquier elemento que pueda alterar la salida sin modificar los fuentes:
+
+```r
+deploy(force = TRUE)
+```
+
+La regla práctica es:
+
+```text
+normal → haz lo necesario
+force  → hazlo todo
+```

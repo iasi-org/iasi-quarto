@@ -1,0 +1,11 @@
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  const banner = document.querySelector("#quarto-announcement .iasi-ants-image");
+  const bootstrap = document.querySelector("link#quarto-bootstrap");
+
+  if (!banner || !bootstrap) return;
+
+  const siteRoot = bootstrap.href.replace(/site_libs\/bootstrap\/[^/]+$/i, "");
+  banner.src = new URL("resources/images/ants.png", siteRoot).href;
+});
+</script>

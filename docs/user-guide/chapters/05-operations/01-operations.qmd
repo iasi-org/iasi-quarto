@@ -1,0 +1,109 @@
+## Operaciones principales
+
+El uso habitual de `iasi.quarto` gira alrededor de cinco operaciones:
+
+```r
+validate()
+prepare()
+build()
+publish()
+deploy()
+```
+
+Cada operación tiene una responsabilidad distinta. La separación es deliberada: reconocer y comprobar un proyecto, materializar artefactos derivados, renderizar formatos y preparar un árbol publicable no son la misma cosa.
+
+### Validar
+
+```r
+validate()
+```
+
+Utilice `validate()` para comprobar que la ruta corresponde a una publicación o espacio de trabajo IASI Quarto reconocido.
+
+No prepara, construye ni publica.
+
+### Preparar
+
+```r
+prepare()
+```
+
+`prepare()` ejecuta el reconocimiento, descubrimiento y comprobación de la publicación y materializa los artefactos derivados necesarios para Quarto, pero se detiene antes del renderizado.
+
+Es útil cuando se quieren revisar artefactos como `_book-structure.yml` o `_generated/navbar-left.yml` antes de construir la publicación.
+
+### Construir
+
+```r
+build()
+```
+
+Construye los formatos seleccionados.
+
+Cuando no se configura otra ubicación, cada publicación escribe sus resultados en subdirectorios de `_outputs/`:
+
+```text
+publication/
+└── _outputs/
+    ├── html/
+    ├── pdf/
+    └── ...
+```
+
+Durante la edición suele ser cómodo construir únicamente HTML:
+
+```r
+build(format = "html")
+```
+
+`_outputs/` contiene artefactos generados y regenerables. No forma parte de la fuente de verdad de la publicación.
+
+### Publicar
+
+```r
+publish()
+```
+
+`publish()` toma los resultados ya construidos y prepara el árbol `_publish/`. No vuelve a renderizar las fuentes.
+
+En una publicación individual:
+
+```text
+publication/
+├── _outputs/
+└── _publish/
+    ├── index.html
+    ├── chapters/
+    ├── pdf/
+    │   └── libro.pdf
+    └── epub/
+        └── libro.epub
+```
+
+El contenido HTML ocupa la raíz de la publicación preparada; los demás formatos permanecen en sus propios subdirectorios.
+
+En un multiproyecto existe un único `_publish/` en la raíz del workspace. Cada publicación ocupa un subdirectorio cuyo prefijo numérico se elimina. Publicar de nuevo una publicación sustituye únicamente su subdirectorio y conserva los demás.
+
+`publish()` no despliega ni congela una release. Esas responsabilidades pertenecen a las operaciones posteriores de distribución.
+
+### Desplegar
+
+```r
+deploy()
+```
+
+`deploy()` mantiene las publicaciones al día de forma incremental.
+
+Para cada publicación comprueba si necesita construir y, después, si necesita publicar. Si no hay cambios relevantes, no repite trabajo innecesario.
+
+## Forzar una operación
+
+Cuando quiera ejecutar una operación completa aunque el estado indique que no es necesaria, utilice `force = TRUE`:
+
+```r
+deploy(force = TRUE)
+```
+
+El modo forzado no elimina las comprobaciones de validez ni oculta errores. Solo evita que el estado previo suprima una construcción o publicación que se ha solicitado expresamente.
+
+`build()` y `publish()` ejecutan directamente la operación solicitada; `force` se mantiene en sus interfaces para conservar una política común cuando son invocados desde otros flujos.

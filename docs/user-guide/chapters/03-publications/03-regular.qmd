@@ -1,0 +1,38 @@
+## Crear un Book Regular
+
+`regular` es la estrategia predeterminada para libros.
+
+La idea es:
+
+```text
+carpeta de contenido
+    → capítulo o unidad de publicación
+
+documentos .qmd dentro de la carpeta
+    → contenido combinado de esa unidad
+```
+
+Ejemplo:
+
+```text
+chapters/
+└── 01-intro/
+    ├── front-matter.quarto
+    ├── 01-purpose.qmd
+    └── 02-scope.qmd
+```
+
+IASI Quarto genera el `index.qmd` de la carpeta combinando los documentos fuente.
+
+`front-matter.quarto` puede proporcionar el front matter del `index.qmd` generado:
+
+```yaml
+---
+title: "Introducción"
+title-block-style: none
+---
+```
+
+Por tanto, **no edite el `index.qmd` generado**. Edite los documentos fuente y, cuando corresponda, `front-matter.quarto`.
+
+Use `regular` cuando una carpeta represente una unidad editorial formada por varios fragmentos o documentos fuente.

@@ -1,0 +1,93 @@
+## Trabajar con varias publicaciones
+
+Un multiproyecto permite mantener varias publicaciones IASI Quarto bajo una misma raíz. Las publicaciones pueden estar agrupadas físicamente en directorios como `docs/`; cada una sigue siendo una unidad de construcción independiente.
+
+Ejemplo:
+
+```text
+workspace/
+├── docs/
+│   ├── 01-user-guide/
+│   │   ├── _quarto.yml
+│   │   ├── _iasi.yml
+│   │   └── _outputs/
+│   ├── 02-developer-guide/
+│   │   ├── _quarto.yml
+│   │   ├── _iasi.yml
+│   │   └── _outputs/
+│   └── 03-reference/
+│       ├── _quarto.yml
+│       ├── _iasi.yml
+│       └── _outputs/
+└── _publish/
+    ├── user-guide/
+    ├── developer-guide/
+    └── reference/
+```
+
+Desde la raíz puede operar sobre el conjunto:
+
+```r
+prepare(path = ".")
+build(path = ".")
+publish(path = ".")
+deploy(path = ".")
+```
+
+## Seleccionar una publicación
+
+Puede seleccionar una publicación con `book`:
+
+```r
+build(
+  path = ".",
+  book = "user-guide"
+)
+```
+
+También puede combinar selección y formato:
+
+```r
+build(
+  path = ".",
+  book = "user-guide",
+  format = "html"
+)
+```
+
+La selección puede utilizar el nombre de la publicación, su ruta relativa, su directorio completo o su prefijo numérico cuando corresponda.
+
+## Un único árbol de publicación
+
+Cuando la operación se ejecuta desde la raíz de un multiproyecto, IASI Quarto utiliza un único `_publish/` común.
+
+El nombre del subdirectorio se deriva del nombre físico de la publicación eliminando únicamente el prefijo numérico inicial:
+
+```text
+01-user-guide       → _publish/user-guide/
+02-developer-guide  → _publish/developer-guide/
+```
+
+Publicar una sola unidad recrea únicamente su destino:
+
+```r
+publish(
+  path = ".",
+  book = "user-guide"
+)
+```
+
+La operación anterior sustituye `_publish/user-guide/` y no modifica `_publish/developer-guide/`.
+
+Si dos publicaciones distintas resolvieran el mismo nombre de destino, la operación se detiene antes de modificar `_publish/`.
+
+Cuando `path` apunta directamente a una publicación individual, esa publicación es el workspace seleccionado y su salida se materializa en su propio `_publish/`.
+
+Esta separación mantiene tres niveles distintos:
+
+```text
+fuentes
+→ _outputs/   construcción local de cada publicación
+→ _publish/   árbol publicable del workspace
+→ release     distribución o congelación posterior
+```

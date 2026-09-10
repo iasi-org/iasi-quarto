@@ -1,0 +1,15 @@
+{
+  "hash": "ac9d714f3244f03bd0b8f21c91ed1279",
+  "result": {
+    "engine": "knitr",
+    "markdown": "## Estrategias soportadas\n\nIASI Quarto soporta tres estrategias de publicación. La estrategia define cómo se interpreta la organización de los documentos fuente.\n\n\n::: {.cell}\n::: {.cell-output-display}\n\n\n|Estrategia |Disponible para |Organización editorial                                                                                     |Cuándo utilizarla                                                                                   |\n|:----------|:---------------|:----------------------------------------------------------------------------------------------------------|:---------------------------------------------------------------------------------------------------|\n|regular    |Website y Book  |En un Book, cada carpeta de contenido forma una unidad y sus archivos .qmd se combinan.                    |Cuando varios documentos fuente forman una única unidad editorial. Es la estrategia predeterminada. |\n|structured |Book            |Cada carpeta representa una Parte; su index.qmd presenta la Parte y los demás archivos .qmd son Capítulos. |Cuando la estructura Parte → Capítulo debe estar representada explícitamente.                       |\n|direct     |Book            |Cada archivo .qmd se publica directamente como Capítulo; las carpetas solo organizan los fuentes.          |Cuando cada documento ya es una unidad editorial completa.                                          |\n\n\n:::\n:::\n\n\nPara un Website, la estrategia soportada es `regular`. Las estrategias `structured` y `direct` son propias de publicaciones de tipo Book.\n\n## Configuración de una publicación\n\nUna publicación IASI Quarto combina la configuración de Quarto con `_iasi.yml`.\n\n`_quarto.yml` continúa describiendo el proyecto Quarto. `_iasi.yml` indica cómo debe interpretar IASI Quarto su organización.\n\nUna configuración mínima de libro puede ser:\n\n```yaml\npublication:\n  strategy: regular\n  content-dir: chapters\n  numbered: true\n```\n\nLos valores predeterminados para un libro son:\n\n```text\nstrategy    = regular\ncontent-dir = chapters\nnumbered    = true\n```\n\n`content-dir` indica dónde se encuentra el contenido organizado de la publicación.\n\nCuando `numbered: true`, los documentos y carpetas de contenido que participan en el orden editorial utilizan prefijos numéricos, por ejemplo:\n\n```text\nchapters/\n├── 01-intro/\n├── 02-installation/\n└── 03-usage/\n```\n",
+    "supporting": [],
+    "filters": [
+      "rmarkdown/pagebreak.lua"
+    ],
+    "includes": {},
+    "engineDependencies": {},
+    "preserve": null,
+    "postProcess": false
+  }
+}

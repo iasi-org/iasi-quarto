@@ -1,0 +1,25 @@
+## Elegir una estrategia
+
+```{r}
+#| echo: false
+#| warning: false
+#| message: false
+
+choices = data.frame(
+  "Si necesita..." = c(
+    "Un Website Quarto",
+    "Combinar varios archivos .qmd de una carpeta en una única unidad",
+    "Representar Partes que contienen Capítulos",
+    "Publicar cada archivo .qmd directamente como Capítulo"
+  ),
+  Estrategia = c("regular", "regular", "structured", "direct"),
+  check.names = FALSE
+)
+
+knitr::kable(
+  choices,
+  align = c("l", "l")
+)
+```
+
+La elección es editorial. No depende del formato final: un mismo libro puede utilizar la misma estrategia para HTML, PDF, EPUB y otros formatos.

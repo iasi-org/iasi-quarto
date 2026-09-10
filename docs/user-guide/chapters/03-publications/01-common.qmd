@@ -1,0 +1,79 @@
+## Estrategias soportadas
+
+IASI Quarto soporta tres estrategias de publicación. La estrategia define cómo se interpreta la organización de los documentos fuente.
+
+```{r}
+#| echo: false
+#| warning: false
+#| message: false
+
+strategies = data.frame(
+  Estrategia = c("regular", "structured", "direct"),
+  "Disponible para" = c("Website y Book", "Book", "Book"),
+  "Organización editorial" = c(
+    "En un Book, cada carpeta de contenido forma una unidad y sus archivos .qmd se combinan.",
+    "Cada carpeta representa una Parte; su index.qmd presenta la Parte y los demás archivos .qmd son Capítulos.",
+    "Cada archivo .qmd se publica directamente como Capítulo; las carpetas solo organizan los fuentes."
+  ),
+  "Cuándo utilizarla" = c(
+    "Cuando varios documentos fuente forman una única unidad editorial. Es la estrategia predeterminada.",
+    "Cuando la estructura Parte → Capítulo debe estar representada explícitamente.",
+    "Cuando cada documento ya es una unidad editorial completa."
+  ),
+  check.names = FALSE
+)
+
+if (knitr::is_html_output() && requireNamespace("kableExtra", quietly = TRUE)) {
+  knitr::kable(
+    strategies,
+    format = "html",
+    align = c("l", "l", "l", "l")
+  ) |>
+    kableExtra::kable_styling(full_width = TRUE) |>
+    kableExtra::column_spec(1, width = "12%", bold = TRUE) |>
+    kableExtra::column_spec(2, width = "15%") |>
+    kableExtra::column_spec(3, width = "36%") |>
+    kableExtra::column_spec(4, width = "37%")
+} else {
+  knitr::kable(
+    strategies,
+    align = c("l", "l", "l", "l")
+  )
+}
+```
+
+Para un Website, la estrategia soportada es `regular`. Las estrategias `structured` y `direct` son propias de publicaciones de tipo Book.
+
+## Configuración de una publicación
+
+Una publicación IASI Quarto combina la configuración de Quarto con `_iasi.yml`.
+
+`_quarto.yml` continúa describiendo el proyecto Quarto. `_iasi.yml` indica cómo debe interpretar IASI Quarto su organización.
+
+Una configuración mínima de libro puede ser:
+
+```yaml
+publication:
+  strategy: regular
+  content-dir: chapters
+  numbered: true
+```
+
+Los valores predeterminados para un libro son:
+
+```text
+strategy    = regular
+content-dir = chapters
+numbered    = true
+```
+
+`content-dir` indica dónde se encuentra el contenido organizado de la publicación.
+
+Cuando `numbered: true`, los documentos y carpetas de contenido que participan en el orden editorial utilizan prefijos numéricos, por ejemplo:
+
+```text
+chapters/
+├── 01-intro/
+├── 02-installation/
+└── 03-usage/
+```

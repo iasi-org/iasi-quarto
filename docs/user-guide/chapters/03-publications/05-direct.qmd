@@ -1,0 +1,30 @@
+## Crear un Book Direct
+
+`direct` publica cada documento `.qmd` como capítulo.
+
+Las carpetas sirven para ordenar físicamente los fuentes, pero no crean Partes ni capítulos contenedores.
+
+Ejemplo:
+
+```text
+chapters/
+├── 01-concepts/
+│   ├── 01-model.qmd
+│   └── 02-context.qmd
+└── 02-usage/
+    ├── 01-build.qmd
+    └── 02-publish.qmd
+```
+
+La publicación resultante contiene los cuatro documentos como capítulos consecutivos.
+
+En `_iasi.yml`:
+
+```yaml
+publication:
+  strategy: direct
+  content-dir: chapters
+  numbered: true
+```
+
+Use `direct` cuando cada `.qmd` ya sea una unidad editorial completa y las carpetas solo deban ayudar a mantener organizado el repositorio.
